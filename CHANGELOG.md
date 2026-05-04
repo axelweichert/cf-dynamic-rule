@@ -7,6 +7,28 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-04
+
+### Changed
+- **UI-Redesign** im Cloudflare-Dashboard-Stil (hell, modern, minimal):
+  - Dunkler Header mit von-Busch-Logo (SVG inline) + Wortmarke + User-Email + Logout
+  - Erkl&auml;rkarte oben: was passiert beim Anfordern
+  - Status-Badges: "Worker live", "KV: N Targets" (oder "leer"), "TTL N min"
+  - Pulldown disabled, wenn keine Targets in KV vorhanden
+  - Aktive Freigaben in sauberer Tabelle mit lokalisiertem Datum (de-DE)
+  - Erfolgsmeldung mit lesbarem "G&uuml;ltig bis" + JSON-Detail
+  - Footer mit Domain + Tenant-Hinweis
+  - Mobile-Layout (< 600px)
+- Logout f&uuml;hrt zu `/cdn-cgi/access/logout` &mdash; loggt komplett aus
+  Cloudflare Access aus (alle Apps des Teams).
+
+### Notes
+- Logo als Inline-SVG (1879 Byte). Kein externer Asset-Request, kein CDN.
+- `</script>`-Konflikte vermieden: ein einziger Closing-Tag im File.
+- Kein R2-Probe-Read in der UI (spart eine Class-A-Operation pro Pageload).
+  R2-Status implizit &uuml;ber funktionierendes Audit-Logging beim
+  `/api/request`-Aufruf erkennbar.
+
 ## [0.2.4] - 2026-05-04
 
 ### Fixed
@@ -125,7 +147,8 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Noch keine funktionale Implementierung
 - Cloudflare-Account, KV, R2, Access-App noch nicht provisioniert
 
-[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.4...v0.3.0
 [0.2.4]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.1...v0.2.2

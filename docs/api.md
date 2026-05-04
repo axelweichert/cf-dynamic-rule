@@ -1,6 +1,6 @@
 # API
 
-Stand: 0.2.4 (implementiert).
+Stand: 0.3.0 (implementiert).
 
 Alle Endpoints liegen hinter Cloudflare Access. Worker erwartet Header
 `Cf-Access-Jwt-Assertion` und verifiziert das JWT.
@@ -16,7 +16,7 @@ Health-Check, kein Auth-Filter durch Worker (Access regelt).
 ```json
 {
   "status": "ok",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "ts": "2026-05-04T13:00:00.000Z"
 }
 ```

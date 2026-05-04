@@ -1,5 +1,5 @@
 // cf-dynamic-rule - Worker Entry
-// Version: 0.2.4
+// Version: 0.3.0
 
 import type { Env } from "./types.js";
 import { handleUi } from "./handlers/ui.js";
@@ -20,7 +20,7 @@ export default {
       if (p === "/api/health" && m === "GET") {
         return Response.json({
           status: "ok",
-          version: "0.2.4",
+          version: "0.3.0",
           ts: new Date().toISOString(),
         });
       }
