@@ -1,0 +1,29 @@
+[
+  {
+    "id": "srv-rdp-fileserver01",
+    "label": "Fileserver 01 (RDP)",
+    "ip": "10.50.10.20",
+    "port": 3389,
+    "protocol": "tcp",
+    "service": "RDP",
+    "allowed_groups": ["external-consultants", "internal-admins"]
+  },
+  {
+    "id": "srv-ssh-jumphost01",
+    "label": "Jumphost 01 (SSH)",
+    "ip": "10.50.10.10",
+    "port": 22,
+    "protocol": "tcp",
+    "service": "SSH",
+    "allowed_groups": ["internal-admins"]
+  },
+  {
+    "id": "srv-https-mgmt-portal",
+    "label": "Management Portal (HTTPS)",
+    "ip": "10.50.20.5",
+    "port": 443,
+    "protocol": "tcp",
+    "service": "HTTPS",
+    "allowed_groups": ["external-consultants", "internal-admins", "internal-support"]
+  }
+]

@@ -1,0 +1,54 @@
+# Cloudflare Worker Konfiguration
+# Doku: https://developers.cloudflare.com/workers/wrangler/configuration/
+#
+# Bootstrap-Stand: Bindings (KV, R2, Cron) sind auskommentiert, bis die
+# Ressourcen im Account angelegt sind. So bleibt der Worker deploybar.
+# Aktivierung Schritt fuer Schritt in v0.2.x.
+
+name = "cf-dynamic-rule"
+main = "src/index.ts"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Custom Domain. Zone "vonbusch.app" muss im Busch NFR Account vorhanden sein.
+routes = [
+  { pattern = "dynamic-access.vonbusch.app", custom_domain = true }
+]
+
+# Nicht-geheime ENV-Variablen
+[vars]
+RULE_TTL_MINUTES = "20"
+RULE_TAG_PREFIX = "cf-dynamic-rule"
+ACCESS_TEAM_DOMAIN = "vonbuschthree60.cloudflareaccess.com"
+
+# Observability
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1.0
+
+# ---------------------------------------------------------------------------
+# Folgende Bindings erst aktivieren, wenn die Ressourcen im Account existieren.
+# Reihenfolge:
+#   1. wrangler kv namespace create TARGETS              -> id einsetzen
+#   2. wrangler r2 bucket create cf-dynamic-rule-audit
+#   3. Kommentar entfernen, deployen
+# ---------------------------------------------------------------------------
+
+# [triggers]
+# crons = ["*/5 * * * *"]
+
+# [[kv_namespaces]]
+# binding = "TARGETS"
+# id = "REPLACE_WITH_KV_ID"
+
+# [[r2_buckets]]
+# binding = "AUDIT"
+# bucket_name = "cf-dynamic-rule-audit"
+
+# Secrets via `wrangler secret put <NAME>`:
+# - CF_API_TOKEN     (Zero-Trust-faehiger API-Token)
+# - CF_ACCOUNT_ID    (Account-ID des Busch NFR Tenants)
+# - ACCESS_AUD       (Application Audience Tag der Access-App)

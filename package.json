@@ -1,0 +1,29 @@
+{
+  "name": "cf-dynamic-rule",
+  "version": "0.1.1",
+  "description": "Self-Service-Portal fuer temporaeren Zero-Trust-Zugriff (Cloudflare Worker)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "typecheck": "tsc --noEmit",
+    "kv:create": "wrangler kv namespace create TARGETS",
+    "r2:create": "wrangler r2 bucket create cf-dynamic-rule-audit",
+    "seed": "bash scripts/seed-kv.sh"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250101.0",
+    "typescript": "^5.6.0",
+    "wrangler": "^4.87.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/axelweichert/cf-dynamic-rule.git"
+  },
+  "license": "UNLICENSED"
+}
