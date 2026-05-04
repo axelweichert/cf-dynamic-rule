@@ -7,6 +7,27 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-05-04
+
+### Fixed
+- **Gateway-Filter-Syntax-Bug:** `POST /api/request` lieferte 500 mit
+  "Filter parsing error: expected IP address character". Ursache: IP wurde
+  als String-Literal in den Filter eingebaut (`net.dst.ip == "10.50.20.5"`),
+  Gateway-Parser akzeptiert dort aber nur IP-Literale ohne Quotes. Fix:
+  `net.dst.ip in {10.50.20.5} and net.dst.port == 443` (IP ohne Quotes,
+  via `in {...}`-Notation gemaess Cloudflare-Doku).
+
+### Added
+- Defensive Validierung des KV-Eintrags vor dem Gateway-Call:
+  - `ip` muss IPv4 oder IPv4-CIDR sein
+  - `port` muss Integer in 1..65535 sein
+  Bei Verstoss: `500` mit klarer Fehlermeldung statt schwammigem
+  Gateway-Parser-Error.
+
+### Notes
+- IPv6-Targets werden weiter nicht unterstuetzt (kein Use Case in der
+  aktuellen Demo). Falls noetig, Validierung und Filter-Bau erweitern.
+
 ## [0.2.3] - 2026-05-04
 
 ### Fixed
@@ -104,7 +125,8 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Noch keine funktionale Implementierung
 - Cloudflare-Account, KV, R2, Access-App noch nicht provisioniert
 
-[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.0...v0.2.1

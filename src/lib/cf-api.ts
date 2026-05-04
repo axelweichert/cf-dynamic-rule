@@ -59,7 +59,7 @@ export async function createAllowRule(env: Env, input: CreateRuleInput): Promise
     enabled: true,
     action: "allow",
     filters: ["l4"],
-    traffic: `net.dst.ip == "${input.ip}" and net.dst.port == ${input.port}`,
+    traffic: `net.dst.ip in {${input.ip}} and net.dst.port == ${input.port}`,
     identity: `identity.email == "${input.email}"`,
     device_posture: "",
   };

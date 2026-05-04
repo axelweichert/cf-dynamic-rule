@@ -35,6 +35,21 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
   const target = await getTarget(env, targetId);
   if (!target) return new Response("target not found", { status: 404 });
 
+  // Defensive: KV-Inhalt validieren bevor er in den Gateway-Filter geht.
+  // Gateway-Filter-Parser akzeptiert nur IPv4-Literale oder CIDR.
+  if (!isValidIpv4OrCidr(target.ip)) {
+    return new Response(
+      `target has invalid ip: ${target.ip} (expected IPv4 or CIDR)`,
+      { status: 500 },
+    );
+  }
+  if (!Number.isInteger(target.port) || target.port < 1 || target.port > 65535) {
+    return new Response(
+      `target has invalid port: ${target.port} (expected 1..65535)`,
+      { status: 500 },
+    );
+  }
+
   // Doppelte aktive Rule fuer dasselbe Target+User vermeiden
   const existing = await listRules(env);
   const prefix = env.RULE_TAG_PREFIX;
@@ -101,4 +116,22 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
     valid_until: expiresAt.toISOString(),
     ttl_minutes: ttlMin,
   });
+}
+
+/**
+ * Validiert eine IPv4-Adresse oder ein IPv4-CIDR (z.B. 10.0.0.0/8).
+ * Gateway-Filter akzeptiert in `net.dst.ip in {...}` keine Hostnames und keine IPv6.
+ */
+function isValidIpv4OrCidr(s: string): boolean {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(?:\/(\d{1,2}))?$/.exec(s);
+  if (!m) return false;
+  for (let i = 1; i <= 4; i++) {
+    const oct = parseInt(m[i], 10);
+    if (oct < 0 || oct > 255) return false;
+  }
+  if (m[5] !== undefined) {
+    const prefix = parseInt(m[5], 10);
+    if (prefix < 0 || prefix > 32) return false;
+  }
+  return true;
 }

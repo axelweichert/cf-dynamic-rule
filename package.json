@@ -1,6 +1,6 @@
 {
   "name": "cf-dynamic-rule",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Self-Service-Portal fuer temporaeren Zero-Trust-Zugriff (Cloudflare Worker)",
   "private": true,
   "type": "module",

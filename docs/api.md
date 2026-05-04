@@ -1,6 +1,6 @@
 # API
 
-Stand: 0.2.3 (implementiert).
+Stand: 0.2.4 (implementiert).
 
 Alle Endpoints liegen hinter Cloudflare Access. Worker erwartet Header
 `Cf-Access-Jwt-Assertion` und verifiziert das JWT.
@@ -16,7 +16,7 @@ Health-Check, kein Auth-Filter durch Worker (Access regelt).
 ```json
 {
   "status": "ok",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "ts": "2026-05-04T13:00:00.000Z"
 }
 ```
@@ -65,7 +65,8 @@ Fehler:
 - `401` Kein/ungueltiges JWT
 - `404` Target unbekannt (nicht in KV-Whitelist)
 - `409` Active Rule fuer dasselbe Target+User existiert bereits
-- `500` Gateway-API-Fehler (Details in R2-Audit)
+- `500` KV-Eintrag invalide (`ip` ist keine IPv4/CIDR oder `port` nicht 1..65535)
+  oder Gateway-API-Fehler (Details in R2-Audit)
 
 Hinweis: Gruppen-basierte Autorisierung (`allowed_groups` aus dem KV-Eintrag)
 ist in 0.2.x nicht aktiv. Jeder durch Cloudflare Access authentifizierte
