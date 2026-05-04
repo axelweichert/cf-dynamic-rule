@@ -7,6 +7,27 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-05-04
+
+### Fixed
+- `wrangler.toml`: KV-Namespace-ID `REPLACE_WITH_KV_ID` durch echte ID
+  `a9828e41f148408b91a97fd42d7d58a6` ersetzt. Workers Builds schlugen seit 0.2.0
+  mit "KV namespace not found" fehl. Letzter erfolgreicher Build davor war
+  `967a45c` (0.1.1, der Stub mit auskommentiertem KV-Eintrag).
+
+### Notes
+- KV-Namespace `cf-dynamic-rule-targets` wurde im Account "von Busch GmbH -
+  Kunden Demoumgebung NFR" angelegt.
+- KV-Inhalt (Targets) ist noch nicht geseedet. Das Portal wird bis zum Seed
+  ein leeres Pulldown anzeigen. Seeding via Cloudflare-Dashboard:
+  Worker -> Storage & Databases -> KV -> cf-dynamic-rule-targets -> Add.
+  Drei Keys aus `targets/seed.json` einfuegen (Key-Schema: `targets:<id>`).
+- Secrets `CF_API_TOKEN`, `CF_ACCOUNT_ID`, `ACCESS_AUD` muessen im Worker-
+  Dashboard noch gesetzt werden, sonst liefert `/api/request` 500.
+- Cloudflare Access Application fuer `dynamic-access.vonbusch.app` muss im
+  Zero-Trust-Dashboard noch angelegt werden, sonst gibt es nur 401 vom Worker
+  (kein JWT).
+
 ## [0.2.2] - 2026-05-04
 
 ### Fixed
@@ -83,7 +104,8 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Noch keine funktionale Implementierung
 - Cloudflare-Account, KV, R2, Access-App noch nicht provisioniert
 
-[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.1.1...v0.2.0

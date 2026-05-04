@@ -30,12 +30,10 @@ enabled = true
 head_sampling_rate = 1.0
 
 # KV Namespace fuer Target-Whitelist
-# Vor Deploy:
-#   wrangler kv namespace create TARGETS
-# Erhaltene id hier eintragen.
+# Angelegt im Account "von Busch GmbH - Kunden Demoumgebung NFR".
 [[kv_namespaces]]
 binding = "TARGETS"
-id = "REPLACE_WITH_KV_ID"
+id = "a9828e41f148408b91a97fd42d7d58a6"
 
 # R2 Bucket fuer Audit-Log
 # Vor Deploy:
