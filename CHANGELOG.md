@@ -7,6 +7,27 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-04
+
+### Added
+- JWT-Verifikation gegen Cloudflare Access (RS256, JWKS-Cache, aud/iss/exp-Pruefung)
+- Cloudflare Gateway API Client (POST/GET/DELETE Rules)
+- KV-basierte Target-Whitelist (`targets:<id>`)
+- R2 Audit-Log (JSONL pro Tag, append via Read-Modify-Write)
+- HTML-UI mit Pulldown, aktiven Freigaben, Revoke-Button
+- POST /api/request: erstellt Allow-Rule (TTL 20 Min, identity.email gebunden)
+- GET /api/active: zeigt aktive Rules des angemeldeten Users
+- DELETE /api/rule/:id: vorzeitiges Beenden eigener Rules
+- Cron-Cleanup */5 Min: loescht abgelaufene Managed-Rules
+- Konflikt-Erkennung: 409, wenn aktive Rule fuer dasselbe Target+User existiert
+
+### Notes
+- Option A: keine Gruppen-Filterung. Jeder durch Access authentifizierte User
+  darf alle Targets sehen und anfordern.
+- Rule-Description-Konvention: `cf-dynamic-rule|<email>|<expiry-iso>`
+- Rule-Name-Konvention: `cf-dynamic-rule-<target_id>-<email>`
+- Vor Deploy: KV-Namespace + R2-Bucket anlegen, ID in wrangler.toml eintragen.
+
 ## [0.1.1] - 2026-05-04
 
 ### Fixed
@@ -38,6 +59,7 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Noch keine funktionale Implementierung
 - Cloudflare-Account, KV, R2, Access-App noch nicht provisioniert
 
-[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/axelweichert/cf-dynamic-rule/releases/tag/v0.1.0
