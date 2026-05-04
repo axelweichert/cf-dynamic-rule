@@ -7,6 +7,12 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-05-04
+
+### Fixed
+- Skripte rufen `npx wrangler` statt `wrangler` auf (kein globaler Wrangler noetig)
+- Skripte pruefen Existenz von `node_modules` und brechen mit klarer Meldung ab
+
 ## [0.2.0] - 2026-05-04
 
 ### Added
@@ -59,7 +65,8 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Noch keine funktionale Implementierung
 - Cloudflare-Account, KV, R2, Access-App noch nicht provisioniert
 
-[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/axelweichert/cf-dynamic-rule/releases/tag/v0.1.0

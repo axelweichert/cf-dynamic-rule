@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
 # Liest targets/seed.json und schreibt jeden Eintrag als KV-Key "targets:<id>"
-# Voraussetzung: wrangler ist eingeloggt, KV-Binding TARGETS in wrangler.toml gesetzt.
+# Voraussetzung: `npm install` und konfiguriertes wrangler.toml mit gueltiger KV-ID.
 
 set -euo pipefail
 
-SEED_FILE="$(dirname "$0")/../targets/seed.json"
+cd "$(dirname "$0")/.."
+
+SEED_FILE="targets/seed.json"
 
 if [ ! -f "$SEED_FILE" ]; then
   echo "Seed-Datei nicht gefunden: $SEED_FILE" >&2
   exit 1
 fi
 
+if [ ! -d node_modules ]; then
+  echo "node_modules fehlt. Bitte zuerst 'npm install' ausfuehren." >&2
+  exit 1
+fi
+
 if ! command -v jq >/dev/null 2>&1; then
-  echo "jq wird benoetigt." >&2
+  echo "jq wird benoetigt (apt install jq / brew install jq)." >&2
   exit 1
 fi
 
@@ -24,7 +31,7 @@ for i in $(seq 0 $((count - 1))); do
   id=$(echo "$entry" | jq -r '.id')
   key="targets:${id}"
   echo "  -> $key"
-  echo "$entry" | wrangler kv key put --binding=TARGETS "$key" --remote
+  echo "$entry" | npx wrangler kv key put --binding=TARGETS "$key" --remote
 done
 
 echo "Fertig."
