@@ -10,6 +10,7 @@ const VON_BUSCH_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0
 
 const CSS = `
   * { box-sizing: border-box; }
+  *[hidden] { display: none !important; }
   html, body { margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;

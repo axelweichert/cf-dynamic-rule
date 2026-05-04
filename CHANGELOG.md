@@ -7,6 +7,16 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-05-04
+
+### Fixed
+- **Modal-Bug:** Das "Neues Target"-Modal poppte beim Pageload sofort auf
+  und liess sich auch durch Abbrechen-Klick nicht zuverlaessig schliessen.
+  Ursache: `.modal-backdrop` setzt `display: flex`, was das HTML-Attribut
+  `hidden` ueberschreibt (CSS-Specificity).
+  Fix: globale Regel `*[hidden] { display: none !important }` in den
+  CSS-Block aufgenommen.
+
 ## [0.4.1] - 2026-05-04
 
 ### Security
@@ -243,7 +253,8 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Noch keine funktionale Implementierung
 - Cloudflare-Account, KV, R2, Access-App noch nicht provisioniert
 
-[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.3.0...v0.3.1
