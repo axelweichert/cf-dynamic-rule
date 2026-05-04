@@ -1,6 +1,6 @@
 # API
 
-Status: Spezifikation, Implementierung folgt ab 0.2.0.
+Stand: 0.2.2 (implementiert).
 
 Alle Endpoints liegen hinter Cloudflare Access. Worker erwartet Header
 `Cf-Access-Jwt-Assertion` und verifiziert das JWT.
@@ -16,14 +16,15 @@ Health-Check, kein Auth-Filter durch Worker (Access regelt).
 ```json
 {
   "status": "ok",
-  "version": "0.1.0",
-  "timestamp": "2026-05-04T13:00:00.000Z"
+  "version": "0.2.2",
+  "ts": "2026-05-04T13:00:00.000Z"
 }
 ```
 
 ## GET /api/targets
 
-Liefert Targets, die der Nutzer waehlen darf (gefiltert nach JWT-Gruppen).
+Liefert alle Targets aus der KV-Whitelist. In 0.2.x ohne Gruppen-Filter
+(jeder Access-authentifizierte Nutzer sieht alle Targets).
 
 ```json
 {
@@ -60,11 +61,15 @@ Response:
 ```
 
 Fehler:
+- `400` Body ohne `target_id`
 - `401` Kein/ungueltiges JWT
-- `403` Target nicht in erlaubten Gruppen des Users
-- `404` Target unbekannt
-- `409` Active Rule fuer dasselbe Target existiert bereits
+- `404` Target unbekannt (nicht in KV-Whitelist)
+- `409` Active Rule fuer dasselbe Target+User existiert bereits
 - `500` Gateway-API-Fehler (Details in R2-Audit)
+
+Hinweis: Gruppen-basierte Autorisierung (`allowed_groups` aus dem KV-Eintrag)
+ist in 0.2.x nicht aktiv. Jeder durch Cloudflare Access authentifizierte
+Nutzer darf alle Targets anfordern.
 
 ## GET /api/active
 

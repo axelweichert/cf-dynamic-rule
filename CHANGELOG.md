@@ -7,6 +7,24 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-05-04
+
+### Fixed
+- Versions-Konsistenz: `src/index.ts` (Header + `/api/health`-Response),
+  `package-lock.json`, `README.md`-Status-Zeile und `docs/api.md` waren in 0.2.1
+  noch auf 0.2.0 stehengeblieben. Alle Stellen jetzt auf der aktuellen Version.
+
+### Added
+- `.gitignore` (node_modules, dist, .wrangler, .env, Logs)
+
+### Docs
+- `docs/api.md`: Status-Hinweis "Spezifikation" entfernt (Endpoints sind seit
+  0.2.0 implementiert), Health-Beispiel-Version aktualisiert, Feldname
+  `timestamp` -> `ts` (passt zur tatsaechlichen Response).
+- `docs/api.md`: Falsche `403`-Fehlerbeschreibung bei `POST /api/request`
+  entfernt (Gruppen-Autorisierung ist in 0.2.x nicht aktiv, Option A).
+- `docs/api.md`: `GET /api/targets`-Beschreibung korrigiert (kein Gruppen-Filter).
+
 ## [0.2.1] - 2026-05-04
 
 ### Fixed
@@ -65,7 +83,8 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Noch keine funktionale Implementierung
 - Cloudflare-Account, KV, R2, Access-App noch nicht provisioniert
 
-[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.1.0...v0.1.1
