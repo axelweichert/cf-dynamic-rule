@@ -4,7 +4,7 @@ Self-Service-Portal für temporären Zero-Trust-Zugriff auf interne Ressourcen.
 Läuft als Cloudflare Worker, erstellt zeitlich begrenzte Gateway-Network-Allow-Policies
 für authentifizierte Nutzer (Azure AD via Cloudflare Access).
 
-**Status:** 0.3.1 (UI-Redesign, demo-ready)
+**Status:** 0.4.0 (Admin-Tab fuer Target-Verwaltung)
 **Tenant:** Busch GmbH NFR Demo
 **Domain:** dynamic-access.vonbusch.app
 
@@ -104,11 +104,19 @@ wrangler deploy
 
 | Methode | Pfad | Zweck |
 |---|---|---|
-| GET | `/` | UI mit Pulldown |
-| GET | `/api/targets` | Liste verfuegbarer Targets (gefiltert nach User-Gruppen) |
+| GET | `/` | UI mit Pulldown + Admin-Tab (nur fuer Admins sichtbar) |
+| GET | `/api/health` | Health-Check (Version, Timestamp) |
+| GET | `/api/me` | Liefert `{ email, is_admin }` fuer das UI |
+| GET | `/api/targets` | Liste aktiver Targets (User-View, ohne disabled) |
 | POST | `/api/request` | Neue Allow-Rule erstellen |
 | GET | `/api/active` | Aktive Rules des aktuellen Users |
 | DELETE | `/api/rule/:id` | Rule vorzeitig beenden |
+| GET | `/api/admin/targets` | **Admin:** alle Targets (auch disabled) |
+| POST | `/api/admin/targets` | **Admin:** neues Target anlegen |
+| PUT | `/api/admin/targets/:id` | **Admin:** Target aendern (oder reaktivieren) |
+| DELETE | `/api/admin/targets/:id` | **Admin:** Soft-Delete (setzt `disabled=true`) |
+
+Admin-Berechtigung: Die JWT-Email muss in `[vars] ADMIN_EMAILS` (CSV in `wrangler.toml`) enthalten sein.
 
 Details: siehe `docs/api.md`
 

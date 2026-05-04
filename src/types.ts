@@ -10,6 +10,7 @@ export interface Env {
   RULE_TTL_MINUTES: string;
   RULE_TAG_PREFIX: string;
   RULE_PRECEDENCE: string;
+  ADMIN_EMAILS: string;
 }
 
 export interface Target {
@@ -21,6 +22,13 @@ export interface Target {
   service: string;
   // Gruppen-Whitelist - in v0.2.0 nicht ausgewertet (Option A)
   allowed_groups?: string[];
+  // 0.4.0: Soft-Delete-Flag. Disabled Targets erscheinen nicht im User-Pulldown.
+  disabled?: boolean;
+  // 0.4.0: Audit-Felder fuer Target-Verwaltung
+  created_by?: string;
+  created_at?: string;
+  updated_by?: string;
+  updated_at?: string;
 }
 
 export interface AccessJwtPayload {
@@ -61,7 +69,14 @@ export interface CreateRuleResult {
 
 export interface AuditEvent {
   ts: string;
-  event: "request" | "cleanup" | "manual_revoke" | "error";
+  event:
+    | "request"
+    | "cleanup"
+    | "manual_revoke"
+    | "error"
+    | "admin_create"
+    | "admin_update"
+    | "admin_delete";
   user?: string;
   target_id?: string;
   rule_id?: string;

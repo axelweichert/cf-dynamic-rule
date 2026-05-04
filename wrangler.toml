@@ -20,6 +20,9 @@ RULE_TTL_MINUTES = "20"
 RULE_TAG_PREFIX = "cf-dynamic-rule"
 ACCESS_TEAM_DOMAIN = "vonbuschthree60.cloudflareaccess.com"
 RULE_PRECEDENCE = "1500"
+# CSV der Admin-Emails. Nur diese Email-Adressen sehen den Admin-Tab und
+# duerfen Targets verwalten. Pflege via Code-Push (Aenderung hier + Auto-Deploy).
+ADMIN_EMAILS = "axel.weichert@vonbusch.digital,marius.petrich@vonbusch.digital,mario.hysa@vonbusch.digital"
 
 # Observability
 [observability]

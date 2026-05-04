@@ -1,11 +1,18 @@
 // cf-dynamic-rule - Worker Entry
-// Version: 0.3.1
+// Version: 0.4.0
 
 import type { Env } from "./types.js";
 import { handleUi } from "./handlers/ui.js";
 import { handleTargets } from "./handlers/targets.js";
 import { handleRequest } from "./handlers/request.js";
 import { handleActive, handleRevoke } from "./handlers/active.js";
+import { handleMe } from "./handlers/me.js";
+import {
+  handleAdminListTargets,
+  handleAdminCreateTarget,
+  handleAdminUpdateTarget,
+  handleAdminDeleteTarget,
+} from "./handlers/admin.js";
 import { runCleanup } from "./handlers/cleanup.js";
 
 export default {
@@ -20,11 +27,12 @@ export default {
       if (p === "/api/health" && m === "GET") {
         return Response.json({
           status: "ok",
-          version: "0.3.1",
+          version: "0.4.0",
           ts: new Date().toISOString(),
         });
       }
 
+      if (p === "/api/me" && m === "GET") return handleMe(request, env);
       if (p === "/api/targets" && m === "GET") return handleTargets(request, env);
       if (p === "/api/request" && m === "POST") return handleRequest(request, env);
       if (p === "/api/active" && m === "GET") return handleActive(request, env);
@@ -32,6 +40,18 @@ export default {
       const revokeMatch = p.match(/^\/api\/rule\/([^/]+)$/);
       if (revokeMatch && m === "DELETE") {
         return handleRevoke(request, env, revokeMatch[1]);
+      }
+
+      // Admin-Endpoints
+      if (p === "/api/admin/targets" && m === "GET") return handleAdminListTargets(request, env);
+      if (p === "/api/admin/targets" && m === "POST") return handleAdminCreateTarget(request, env);
+
+      const adminTargetMatch = p.match(/^\/api\/admin\/targets\/([^/]+)$/);
+      if (adminTargetMatch && m === "PUT") {
+        return handleAdminUpdateTarget(request, env, adminTargetMatch[1]);
+      }
+      if (adminTargetMatch && m === "DELETE") {
+        return handleAdminDeleteTarget(request, env, adminTargetMatch[1]);
       }
 
       return new Response("Not Found", { status: 404 });

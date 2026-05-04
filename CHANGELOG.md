@@ -7,6 +7,49 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-04
+
+### Added
+- **Admin-Tab** mit Target-Verwaltung (CRUD via UI, kein Cloudflare-Dashboard
+  mehr noetig fuer den Tagesbetrieb).
+- **Admin-Berechtigung** ueber CSV-Liste `[vars] ADMIN_EMAILS` in
+  `wrangler.toml`. Initial: axel.weichert, marius.petrich, mario.hysa.
+- **Soft-Delete** fuer Targets: `disabled=true` blendet aus User-Pulldown
+  aus, behaelt das Target im Admin-View. Reaktivierung jederzeit moeglich.
+- Neue API-Endpoints:
+  - `GET /api/me` &mdash; liefert `{email, is_admin}` fuers UI
+  - `GET /api/admin/targets` &mdash; alle Targets (auch disabled)
+  - `POST /api/admin/targets` &mdash; Target anlegen
+  - `PUT /api/admin/targets/:id` &mdash; Target aendern oder reaktivieren
+  - `DELETE /api/admin/targets/:id` &mdash; Soft-Delete
+- **Audit-Events** `admin_create`, `admin_update`, `admin_delete` in R2.
+  Bei Updates wird `details.changes` mit `from`/`to` pro Feld geschrieben.
+- **Audit-Felder pro Target**: `created_by`, `created_at`, `updated_by`,
+  `updated_at` automatisch befuellt.
+- `lib/admin.ts` mit zentralen Validatoren (`isValidIpv4OrCidr`,
+  `isValidPort`, `isValidTargetId`) &mdash; werden auch in `request.ts` genutzt.
+
+### Changed
+- UI-Layout: Tab-Bar zwischen Header und Content. Tab "Admin" ist nur fuer
+  Admins sichtbar (server-side gerendert via `isAdmin()`).
+- Admin-Badge im Header neben der Email, wenn der User Admin ist.
+- `POST /api/request` gibt jetzt 404 fuer disabled Targets zur&uuml;ck (bevor
+  das Target ueberhaupt validiert wird), damit Soft-Deleted Targets nicht
+  per ID-Raten reaktivierbar sind.
+- `lib/targets.ts`: `listTargets()` filtert disabled raus, neue Funktion
+  `listAllTargets()` liefert alles (Admin-only). Neue Helper `putTarget()`,
+  `hardDeleteTarget()`.
+
+### Notes
+- `ADMIN_EMAILS` ist case-insensitive und ignoriert Whitespace zwischen
+  Eintraegen.
+- Das Soft-Delete setzt aktive Gateway-Rules NICHT zurueck. Wer einen
+  Target sofort sperren will, muss zusaetzlich die laufenden Rules ueber
+  das Cloudflare-Dashboard oder per API-Skript beenden.
+- User-Verwaltung selbst (wer darf das Tool ueberhaupt benutzen) liegt
+  weiterhin bei Cloudflare Access &mdash; nicht im Worker. Externe via
+  One-Time-PIN, Interne via Azure AD.
+
 ## [0.3.1] - 2026-05-04
 
 ### Changed
@@ -162,7 +205,8 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Noch keine funktionale Implementierung
 - Cloudflare-Account, KV, R2, Access-App noch nicht provisioniert
 
-[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.4...v0.3.0
 [0.2.4]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.3...v0.2.4

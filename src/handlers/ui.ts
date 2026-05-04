@@ -1,8 +1,9 @@
 // HTML-UI Handler. Minimal, ohne Build-Pipeline.
-// 0.3.0: helles Cloudflare-Dashboard-Style UI mit Header, Status-Badges, Logout.
+// 0.4.0: Tab-Bar mit Admin-Tab (nur fuer Admins), Admin-CRUD fuer Targets.
 
 import type { Env, Target } from "../types.js";
 import { requireUser } from "../lib/jwt.js";
+import { isAdmin } from "../lib/admin.js";
 import { listTargets } from "../lib/targets.js";
 
 const VON_BUSCH_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 546.42 118.1" aria-label="von Busch"><path fill="#fff" d="M513.89,50V163.78h10.49V133c0-11.59.91-25.67,15.33-25.67,12.19,0,13,9.39,13,19.87v36.56h10.48V125.29c0-15.18-3.93-28.15-21-28.15-7.6,0-13.24,3.45-17.56,9.66l-.26-.27V50Zm-20.58,53.67a32.06,32.06,0,0,0-19-6.49c-18.09,0-32.9,14.91-32.9,34.22,0,19.59,14.15,34.22,32.77,34.22,7.34,0,13.5-2.35,19.53-6.63V144.19h-.27c-5.11,7-11.27,11.18-20.05,11.18-12.84,0-21.23-11.18-21.23-24s9-24,21.76-24c8.25,0,14.28,4.42,19.13,10.9h.26ZM425,109.15c-2.75-6.76-9.31-12-16.39-12a18,18,0,0,0-18.35,18.36c0,20.41,27.79,15.45,27.79,29.93a9.6,9.6,0,0,1-10,9.94c-6.95,0-10-4.28-12.58-10.35l-9.31,4.14c3.28,10.21,11.4,16.42,21.76,16.42a20.66,20.66,0,0,0,20.84-21.11c0-10.9-7.08-15.46-14.29-18.63s-14.28-5.38-14.28-11.31c0-4.14,3.93-7.18,7.6-7.18s6.94,3.18,8.39,6.63ZM330,98.94H319.52v37.39c0,17.24,6.16,29.25,24.38,29.25s24.38-12,24.38-29.25V98.94H357.79v36.14c0,10.9-1.18,20.29-13.89,20.29S330,146,330,135.08ZM252.94,70.52h4.32c13.5,0,22.94,1.65,22.94,17.38,0,16.14-10.62,17.66-23.07,17.66h-4.19Zm-11,93.26h22.93c19.53,0,35.39-8.28,35.39-29,0-12.42-6.94-23.59-18.74-26.63,6.68-4.69,9.7-11.86,9.7-20.28,0-21.25-15.07-28.14-33-28.14H241.93Zm11-48.28h9.57c12.05,0,26.73,2.34,26.73,18.48,0,15.87-13,19-25.29,19h-11ZM179.28,98.94H168.79v64.84h10.49V133c0-11.59.92-25.67,15.33-25.67,12.19,0,13,9.39,13,19.87v36.56h10.48V125.29c0-15.18-3.93-28.15-21-28.15-7.6,0-13.24,3.45-17.56,9.66h-.26Zm-61.21,8.41c13,0,21.89,10.9,21.89,24s-8.91,24-21.89,24-21.89-10.77-21.89-24,8.91-24,21.89-24m0,58.23c18,0,32.37-15,32.37-34.08s-14.28-34.36-32.37-34.36S85.7,112.46,85.7,131.5s14.41,34.08,32.37,34.08M28.68,98.94H16.75L47,168.06,77.18,98.94H65.38L47,142.54Z" transform="translate(-16.75 -49.96)"/></svg>`;
@@ -36,11 +37,33 @@ const CSS = `
   header .brand .app-name { font-size: 13px; font-weight: 500; letter-spacing: 0.02em; color: #d1d5db; }
   header .user { display: flex; align-items: center; gap: 12px; font-size: 13px; }
   header .user .email { color: #d1d5db; }
+  header .user .admin-badge {
+    font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px;
+    background: #1e3a8a; color: #93c5fd; letter-spacing: 0.05em;
+  }
   header .user a {
     color: #9ca3af; text-decoration: none; padding: 6px 10px; border-radius: 4px;
     border: 1px solid #2a2a2a; transition: all 0.15s;
   }
   header .user a:hover { color: #fff; border-color: #3a3a3a; background: #151515; }
+
+  .tabbar {
+    background: #fff; border-bottom: 1px solid #e5e7eb;
+    padding: 0 24px;
+  }
+  .tabbar-inner {
+    max-width: 880px; margin: 0 auto; display: flex; gap: 4px;
+  }
+  .tab {
+    background: transparent; border: 0; padding: 12px 16px;
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    color: #6b7280; cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .tab:hover { color: #111827; }
+  .tab.active { color: #0051c3; border-bottom-color: #0051c3; }
+  .tab.hidden { display: none; }
 
   main {
     flex: 1;
@@ -51,6 +74,9 @@ const CSS = `
   }
   h1.page { font-size: 22px; font-weight: 600; margin: 0 0 6px; color: #111827; }
   p.lede { color: #4b5563; margin: 0 0 24px; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
 
   .status-row {
     display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px;
@@ -68,6 +94,8 @@ const CSS = `
   .badge.warn .dot { background: #f59e0b; }
   .badge.info { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
   .badge.info .dot { background: #3b82f6; }
+  .badge.muted { background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; }
+  .badge.muted .dot { background: #9ca3af; }
 
   .card {
     background: #fff;
@@ -80,18 +108,26 @@ const CSS = `
     font-size: 14px; font-weight: 600; margin: 0 0 16px; color: #111827;
     text-transform: uppercase; letter-spacing: 0.04em;
   }
+  .card .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .card .card-header h2 { margin: 0; }
   .card.intro { background: #fafbfc; }
   .card.intro p { margin: 0; color: #4b5563; font-size: 13px; }
   .card.intro p + p { margin-top: 8px; }
 
   label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: #374151; }
-  select {
+  .field { margin-bottom: 12px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  input[type=text], input[type=number], select {
     width: 100%; font-family: inherit; font-size: 14px;
     padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;
     background: #fff; color: #111827;
     transition: border-color 0.15s, box-shadow 0.15s;
   }
-  select:focus { outline: none; border-color: #0051c3; box-shadow: 0 0 0 3px rgba(0,81,195,0.12); }
+  input:focus, select:focus { outline: none; border-color: #0051c3; box-shadow: 0 0 0 3px rgba(0,81,195,0.12); }
+  input.error { border-color: #dc2626; }
 
   button {
     font-family: inherit; font-size: 14px; font-weight: 500;
@@ -109,8 +145,13 @@ const CSS = `
   button.outline:hover { background: #f9fafb; border-color: #9ca3af; }
   button.outline.danger { color: #b91c1c; border-color: #fecaca; }
   button.outline.danger:hover { background: #fef2f2; border-color: #f87171; }
+  button.ghost {
+    background: transparent; color: #6b7280; border-color: transparent;
+    padding: 4px 8px; font-size: 12px;
+  }
+  button.ghost:hover { background: #f3f4f6; color: #111827; }
 
-  .actions { margin-top: 16px; }
+  .actions { margin-top: 16px; display: flex; gap: 8px; }
 
   .out { margin-top: 16px; padding: 12px 16px; border-radius: 6px; font-size: 13px; }
   .out.ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
@@ -123,8 +164,25 @@ const CSS = `
   th { font-weight: 500; color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; background: #fafbfc; }
   td.target { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; color: #374151; }
   td.expiry { color: #6b7280; font-variant-numeric: tabular-nums; }
-  td.action { width: 100px; text-align: right; }
+  td.action { width: 180px; text-align: right; white-space: nowrap; }
+  td.action button + button { margin-left: 6px; }
+  td.target-id { font-family: ui-monospace, monospace; font-size: 12px; color: #6b7280; }
+  td.disabled-row { opacity: 0.55; }
   .empty { color: #6b7280; font-size: 13px; text-align: center; padding: 24px; font-style: italic; }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(17,24,39,0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; padding: 20px;
+  }
+  .modal {
+    background: #fff; border-radius: 8px; padding: 24px;
+    width: 100%; max-width: 480px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+  }
+  .modal h3 { margin: 0 0 16px; font-size: 16px; font-weight: 600; }
+  .modal .actions { margin-top: 20px; justify-content: flex-end; }
+  .modal .err-line { color: #b91c1c; font-size: 12px; margin-top: 8px; min-height: 18px; }
 
   footer {
     text-align: center; padding: 16px; color: #9ca3af; font-size: 12px;
@@ -137,6 +195,8 @@ const CSS = `
     header .brand .app-name { display: none; }
     main { padding: 24px 16px 48px; }
     .card { padding: 16px; }
+    .field-row { grid-template-columns: 1fr; }
+    td.action { width: auto; }
   }
 `;
 
@@ -150,7 +210,8 @@ export async function handleUi(request: Request, env: Env): Promise<Response> {
 
   const targets = await listTargets(env);
   const ttl = env.RULE_TTL_MINUTES;
-  const html = renderHtml(user.email, targets, ttl);
+  const admin = isAdmin(user.email, env);
+  const html = renderHtml(user.email, targets, ttl, admin);
 
   return new Response(html, {
     status: 200,
@@ -158,7 +219,7 @@ export async function handleUi(request: Request, env: Env): Promise<Response> {
   });
 }
 
-function renderHtml(email: string, targets: Target[], ttl: string): string {
+function renderHtml(email: string, targets: Target[], ttl: string, admin: boolean): string {
   const options = targets
     .map(
       (t) =>
@@ -187,42 +248,115 @@ function renderHtml(email: string, targets: Target[], ttl: string): string {
       <span class="app-name">Dynamic Rule</span>
     </div>
     <div class="user">
+      ${admin ? `<span class="admin-badge">ADMIN</span>` : ""}
       <span class="email">${escapeHtml(email)}</span>
       <a href="/cdn-cgi/access/logout" title="Aus Cloudflare Access ausloggen (alle Apps)">Logout</a>
     </div>
   </header>
 
+  <nav class="tabbar">
+    <div class="tabbar-inner">
+      <button class="tab active" data-tab="access">Zugriff anfordern</button>
+      <button class="tab ${admin ? "" : "hidden"}" data-tab="admin">Admin &mdash; Targets</button>
+    </div>
+  </nav>
+
   <main>
-    <h1 class="page">Tempor&auml;rer Zugriff auf interne Ressourcen</h1>
-    <p class="lede">W&auml;hle ein Ziel und fordere zeitlich begrenzten Zugriff an. Der Zugriff l&auml;uft nach <strong>${escapeHtml(ttl)} Minuten</strong> automatisch ab.</p>
+    <!-- Tab: Zugriff anfordern -->
+    <section class="panel active" data-panel="access">
+      <h1 class="page">Tempor&auml;rer Zugriff auf interne Ressourcen</h1>
+      <p class="lede">W&auml;hle ein Ziel und fordere zeitlich begrenzten Zugriff an. Der Zugriff l&auml;uft nach <strong>${escapeHtml(ttl)} Minuten</strong> automatisch ab.</p>
 
-    <div class="status-row">
-      <span class="badge ok"><span class="dot"></span>Worker live</span>
-      ${kvBadge}
-      <span class="badge info"><span class="dot"></span>TTL ${escapeHtml(ttl)} min</span>
-    </div>
-
-    <div class="card intro">
-      <p><strong>Was passiert hier?</strong> Mit einem Klick auf &bdquo;Zugriff anfordern&ldquo; wird automatisch eine Cloudflare-Gateway-Allow-Regel erstellt, die ausschliesslich auf deine Identit&auml;t (<code>${escapeHtml(email)}</code>) und das gew&auml;hlte Ziel beschr&auml;nkt ist.</p>
-      <p>Der Zugriff erfolgt anschliessend &uuml;ber den WARP-Client und endet automatisch nach Ablauf der TTL. Du kannst eigene Freigaben jederzeit vorzeitig beenden.</p>
-    </div>
-
-    <div class="card">
-      <h2>Neuer Zugriff</h2>
-      <label for="target">Ziel ausw&auml;hlen</label>
-      <select id="target" ${targets.length === 0 ? "disabled" : ""}>
-        ${targets.length === 0 ? `<option value="">(Keine Targets verf&uuml;gbar)</option>` : `<option value="">&mdash; bitte w&auml;hlen &mdash;</option>`}
-        ${options}
-      </select>
-      <div class="actions">
-        <button id="go" class="primary" ${targets.length === 0 ? "disabled" : ""}>Zugriff anfordern</button>
+      <div class="status-row">
+        <span class="badge ok"><span class="dot"></span>Worker live</span>
+        ${kvBadge}
+        <span class="badge info"><span class="dot"></span>TTL ${escapeHtml(ttl)} min</span>
       </div>
-      <div id="out" hidden></div>
-    </div>
 
-    <div class="card">
-      <h2>Aktive Freigaben</h2>
-      <div id="active"><div class="empty">l&auml;dt &hellip;</div></div>
+      <div class="card intro">
+        <p><strong>Was passiert hier?</strong> Mit einem Klick auf &bdquo;Zugriff anfordern&ldquo; wird automatisch eine Cloudflare-Gateway-Allow-Regel erstellt, die ausschliesslich auf deine Identit&auml;t (<code>${escapeHtml(email)}</code>) und das gew&auml;hlte Ziel beschr&auml;nkt ist.</p>
+        <p>Der Zugriff erfolgt anschliessend &uuml;ber den WARP-Client und endet automatisch nach Ablauf der TTL. Du kannst eigene Freigaben jederzeit vorzeitig beenden.</p>
+      </div>
+
+      <div class="card">
+        <h2>Neuer Zugriff</h2>
+        <label for="target">Ziel ausw&auml;hlen</label>
+        <select id="target" ${targets.length === 0 ? "disabled" : ""}>
+          ${targets.length === 0 ? `<option value="">(Keine Targets verf&uuml;gbar)</option>` : `<option value="">&mdash; bitte w&auml;hlen &mdash;</option>`}
+          ${options}
+        </select>
+        <div class="actions">
+          <button id="go" class="primary" ${targets.length === 0 ? "disabled" : ""}>Zugriff anfordern</button>
+        </div>
+        <div id="out" hidden></div>
+      </div>
+
+      <div class="card">
+        <h2>Aktive Freigaben</h2>
+        <div id="active"><div class="empty">l&auml;dt &hellip;</div></div>
+      </div>
+    </section>
+
+    <!-- Tab: Admin (nur fuer Admins) -->
+    <section class="panel" data-panel="admin">
+      <h1 class="page">Target-Verwaltung</h1>
+      <p class="lede">Targets sind die internen Ressourcen, die User &uuml;ber das Self-Service-Portal anfordern k&ouml;nnen. &Auml;nderungen sind sofort aktiv.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>Targets</h2>
+          <button id="admin-add" class="primary">+ Neues Target</button>
+        </div>
+        <div id="admin-list"><div class="empty">l&auml;dt &hellip;</div></div>
+      </div>
+
+      <div class="card intro">
+        <p><strong>Hinweis:</strong> &bdquo;Beenden&ldquo; ist ein Soft-Delete &mdash; das Target wird auf inaktiv gesetzt und verschwindet aus dem User-Pulldown. Bestehende aktive Freigaben laufen wie geplant ab oder k&ouml;nnen vom User vorzeitig beendet werden.</p>
+        <p>Ein deaktiviertes Target kann jederzeit wieder aktiviert werden. Eine harte L&ouml;schung erfolgt nicht &uuml;ber dieses UI &mdash; siehe Runbook.</p>
+      </div>
+    </section>
+
+    <!-- Modal fuer Add/Edit (admin) -->
+    <div id="modal" class="modal-backdrop" hidden>
+      <div class="modal">
+        <h3 id="modal-title">Neues Target</h3>
+        <div class="field">
+          <label for="m-id">ID</label>
+          <input type="text" id="m-id" placeholder="z.B. srv-rdp-buchhaltung" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="m-label">Anzeigename</label>
+          <input type="text" id="m-label" placeholder="z.B. Buchhaltung Terminalserver" autocomplete="off">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="m-ip">IP / CIDR</label>
+            <input type="text" id="m-ip" placeholder="10.50.10.20" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="m-port">Port</label>
+            <input type="number" id="m-port" min="1" max="65535" placeholder="3389">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="m-protocol">Protokoll</label>
+            <select id="m-protocol">
+              <option value="tcp">TCP</option>
+              <option value="udp">UDP</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="m-service">Dienst</label>
+            <input type="text" id="m-service" placeholder="z.B. RDP" autocomplete="off">
+          </div>
+        </div>
+        <div id="m-err" class="err-line"></div>
+        <div class="actions">
+          <button id="m-cancel" class="ghost">Abbrechen</button>
+          <button id="m-save" class="primary">Speichern</button>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -235,6 +369,19 @@ const out = document.getElementById('out');
 const go = document.getElementById('go');
 const sel = document.getElementById('target');
 const activeEl = document.getElementById('active');
+const adminListEl = document.getElementById('admin-list');
+const modal = document.getElementById('modal');
+const mTitle = document.getElementById('modal-title');
+const mId = document.getElementById('m-id');
+const mLabel = document.getElementById('m-label');
+const mIp = document.getElementById('m-ip');
+const mPort = document.getElementById('m-port');
+const mProtocol = document.getElementById('m-protocol');
+const mService = document.getElementById('m-service');
+const mErr = document.getElementById('m-err');
+const mCancel = document.getElementById('m-cancel');
+const mSave = document.getElementById('m-save');
+let editingId = null;
 
 function fmtDate(iso) {
   try {
@@ -247,6 +394,20 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+// --- Tab-Switching ---
+document.querySelectorAll('.tab').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    const tab = btn.getAttribute('data-tab');
+    document.querySelectorAll('.tab').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    document.querySelectorAll('.panel').forEach(function(p) {
+      p.classList.toggle('active', p.getAttribute('data-panel') === tab);
+    });
+    if (tab === 'admin') refreshAdminList();
+  });
+});
+
+// --- User-Tab: aktive Freigaben ---
 async function refreshActive() {
   try {
     const r = await fetch('/api/active');
@@ -279,12 +440,8 @@ async function revoke(ev) {
   ev.currentTarget.disabled = true;
   ev.currentTarget.textContent = 'beende ...';
   const r = await fetch('/api/rule/' + encodeURIComponent(id), { method: 'DELETE' });
-  if (r.ok) {
-    refreshActive();
-  } else {
-    alert('Fehler: ' + (await r.text()));
-    refreshActive();
-  }
+  if (r.ok) { refreshActive(); }
+  else { alert('Fehler: ' + (await r.text())); refreshActive(); }
 }
 
 if (go) {
@@ -328,6 +485,154 @@ if (go) {
     }
   });
 }
+
+// --- Admin-Tab ---
+async function refreshAdminList() {
+  if (!adminListEl) return;
+  try {
+    const r = await fetch('/api/admin/targets');
+    if (!r.ok) {
+      adminListEl.innerHTML = '<div class="empty">Fehler beim Laden: ' + escHtml(await r.text()) + '</div>';
+      return;
+    }
+    const j = await r.json();
+    if (!j.targets || j.targets.length === 0) {
+      adminListEl.innerHTML = '<div class="empty">Noch keine Targets. Klick auf &bdquo;Neues Target&ldquo; um zu starten.</div>';
+      return;
+    }
+    const rows = j.targets.map(function(t) {
+      const disabled = t.disabled === true;
+      const statusBadge = disabled
+        ? '<span class="badge muted"><span class="dot"></span>inaktiv</span>'
+        : '<span class="badge ok"><span class="dot"></span>aktiv</span>';
+      const actions = disabled
+        ? '<button class="outline" data-act="enable" data-id="' + escHtml(t.id) + '">Aktivieren</button>'
+          + '<button class="outline" data-act="edit" data-id="' + escHtml(t.id) + '">Bearbeiten</button>'
+        : '<button class="outline" data-act="edit" data-id="' + escHtml(t.id) + '">Bearbeiten</button>'
+          + '<button class="outline danger" data-act="disable" data-id="' + escHtml(t.id) + '">Beenden</button>';
+      return '<tr' + (disabled ? ' class="disabled-row"' : '') + '>'
+        + '<td>' + escHtml(t.label) + '<div class="target-id">' + escHtml(t.id) + '</div></td>'
+        + '<td class="target">' + escHtml(t.ip) + ':' + t.port + '/' + escHtml(t.protocol) + '</td>'
+        + '<td>' + escHtml(t.service) + '</td>'
+        + '<td>' + statusBadge + '</td>'
+        + '<td class="action">' + actions + '</td>'
+      + '</tr>';
+    }).join('');
+    adminListEl.innerHTML = '<table><thead><tr><th>Name</th><th>IP/Port</th><th>Dienst</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+    adminListEl.querySelectorAll('button[data-act]').forEach(function(b) {
+      b.addEventListener('click', onAdminAction);
+    });
+  } catch (e) {
+    adminListEl.innerHTML = '<div class="empty">Netz-Fehler: ' + escHtml(e.message) + '</div>';
+  }
+}
+
+async function onAdminAction(ev) {
+  const id = ev.currentTarget.getAttribute('data-id');
+  const act = ev.currentTarget.getAttribute('data-act');
+  if (act === 'edit') {
+    const r = await fetch('/api/admin/targets');
+    if (!r.ok) { alert('Konnte Target nicht laden'); return; }
+    const j = await r.json();
+    const t = (j.targets || []).find(function(x) { return x.id === id; });
+    if (!t) { alert('Target nicht mehr vorhanden'); refreshAdminList(); return; }
+    openModal(t);
+  } else if (act === 'disable') {
+    if (!confirm('Target beenden?\\n\\n' + id + '\\n\\nDas Target verschwindet aus dem User-Pulldown. Aktive Freigaben bleiben bestehen, bis sie ablaufen.')) return;
+    ev.currentTarget.disabled = true;
+    const r = await fetch('/api/admin/targets/' + encodeURIComponent(id), { method: 'DELETE' });
+    if (!r.ok) { alert('Fehler: ' + (await r.text())); }
+    refreshAdminList();
+  } else if (act === 'enable') {
+    ev.currentTarget.disabled = true;
+    const r = await fetch('/api/admin/targets/' + encodeURIComponent(id), {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ disabled: false }),
+    });
+    if (!r.ok) { alert('Fehler: ' + (await r.text())); }
+    refreshAdminList();
+  }
+}
+
+function openModal(target) {
+  mErr.textContent = '';
+  if (target) {
+    editingId = target.id;
+    mTitle.textContent = 'Target bearbeiten';
+    mId.value = target.id;
+    mId.disabled = true;
+    mLabel.value = target.label || '';
+    mIp.value = target.ip || '';
+    mPort.value = target.port || '';
+    mProtocol.value = target.protocol || 'tcp';
+    mService.value = target.service || '';
+  } else {
+    editingId = null;
+    mTitle.textContent = 'Neues Target';
+    mId.value = '';
+    mId.disabled = false;
+    mLabel.value = '';
+    mIp.value = '';
+    mPort.value = '';
+    mProtocol.value = 'tcp';
+    mService.value = '';
+  }
+  modal.hidden = false;
+  setTimeout(function() { (target ? mLabel : mId).focus(); }, 50);
+}
+
+function closeModal() { modal.hidden = true; mErr.textContent = ''; }
+
+mCancel.addEventListener('click', closeModal);
+modal.addEventListener('click', function(ev) { if (ev.target === modal) closeModal(); });
+
+mSave.addEventListener('click', async function() {
+  mErr.textContent = '';
+  const payload = {
+    label: mLabel.value.trim(),
+    ip: mIp.value.trim(),
+    port: parseInt(mPort.value, 10),
+    protocol: mProtocol.value,
+    service: mService.value.trim(),
+  };
+  let url, method;
+  if (editingId) {
+    url = '/api/admin/targets/' + encodeURIComponent(editingId);
+    method = 'PUT';
+  } else {
+    payload.id = mId.value.trim();
+    url = '/api/admin/targets';
+    method = 'POST';
+  }
+  mSave.disabled = true;
+  mSave.textContent = 'speichere ...';
+  try {
+    const r = await fetch(url, {
+      method: method,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) {
+      mErr.textContent = 'Fehler ' + r.status + ': ' + (await r.text());
+      return;
+    }
+    closeModal();
+    refreshAdminList();
+  } catch (e) {
+    mErr.textContent = 'Netz-Fehler: ' + e.message;
+  } finally {
+    mSave.disabled = false;
+    mSave.textContent = 'Speichern';
+  }
+});
+
+const adminAddBtn = document.getElementById('admin-add');
+if (adminAddBtn) adminAddBtn.addEventListener('click', function() { openModal(null); });
+
+document.addEventListener('keydown', function(ev) {
+  if (ev.key === 'Escape' && !modal.hidden) closeModal();
+});
 
 refreshActive();
 </script>
