@@ -4,7 +4,7 @@ import type { Env } from "../types.js";
 import { requireUser } from "../lib/jwt.js";
 import { getTarget } from "../lib/targets.js";
 import { audit } from "../lib/audit.js";
-import { isValidIpv4OrCidr, isValidPort } from "../lib/admin.js";
+import { isValidTargetIp, isValidPort } from "../lib/admin.js";
 import {
   buildManagedDescription,
   createAllowRule,
@@ -42,10 +42,11 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
   }
 
   // Defensive: KV-Inhalt validieren bevor er in den Gateway-Filter geht.
-  // Gateway-Filter-Parser akzeptiert nur IPv4-Literale oder CIDR.
-  if (!isValidIpv4OrCidr(target.ip)) {
+  // Auch wenn der Admin-Endpoint dasselbe checkt, KV koennte direkt
+  // korrumpiert worden sein. Doppelter Schutz ist hier billig.
+  if (!isValidTargetIp(target.ip)) {
     return new Response(
-      `target has invalid ip: ${target.ip} (expected IPv4 or CIDR)`,
+      `target has invalid ip: ${target.ip} (expected RFC1918 IPv4 single host)`,
       { status: 500 },
     );
   }

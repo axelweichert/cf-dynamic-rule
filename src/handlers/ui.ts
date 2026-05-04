@@ -330,7 +330,7 @@ function renderHtml(email: string, targets: Target[], ttl: string, admin: boolea
         </div>
         <div class="field-row">
           <div class="field">
-            <label for="m-ip">IP / CIDR</label>
+            <label for="m-ip">IP <span style="color:#9ca3af; font-weight: 400;">(nur RFC1918 Einzeladresse)</span></label>
             <input type="text" id="m-ip" placeholder="10.50.10.20" autocomplete="off">
           </div>
           <div class="field">

@@ -7,6 +7,44 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-05-04
+
+### Security
+- **IP-Validierung verschaerft.** Targets duerfen jetzt nur noch:
+  - **Einzeladressen** sein (kein CIDR mehr) &mdash; ein Target = ein Server
+  - in einem **RFC1918-Bereich** liegen (`10.0.0.0/8`, `172.16.0.0/12`,
+    `192.168.0.0/16`)
+  Public IPs (`8.8.8.8`, `1.1.1.1`), Loopback (`127.0.0.1`), und alle
+  Bereiche ausserhalb RFC1918 werden mit `400` abgelehnt.
+
+### Why
+- Die Worker-Allow-Rule auf Precedence 1500 ueberschreibt im
+  Cloudflare-Gateway alle nachfolgenden L4-Block-Policies. Ein versehentlich
+  oder absichtlich angelegtes Target mit `0.0.0.0/0` haette einem User fuer
+  20 Minuten freien Zugriff auf das gesamte Internet hinter Gateway gegeben.
+  Ein `10.0.0.0/8`-Target haette das gesamte interne /8-Netz freigeschaltet.
+  Mit den neuen Limits ist der Wirkbereich pro Allow-Rule maximal eine
+  einzelne IP+Port-Kombination innerhalb der internen Netze.
+
+### Changed
+- Validator-API in `lib/admin.ts` umstrukturiert:
+  - Neue Funktion `validateTargetIp(s)` liefert lesbaren Fehlertext oder
+    null. Wird im Admin-Endpoint zur User-Feedback-Anzeige genutzt.
+  - Neue Funktion `isValidTargetIp(s)` als Boolean-Wrapper, fuer den
+    KV-Runtime-Check in `request.ts`.
+  - `isValidIpv4OrCidr` entfernt (war zu permissiv).
+- UI: Modal-Form labelt das IP-Feld mit dem expliziten Hinweis
+  "(nur RFC1918 Einzeladresse)".
+- `docs/api.md`: Dokumentation des `ip`-Feldes aktualisiert.
+
+### Notes
+- Migrations-Check der bestehenden Targets durchgefuehrt: alle 3
+  (`10.50.10.10`, `10.50.10.20`, `10.50.20.5`) erfuellen die neuen Regeln.
+  Kein Backfill noetig.
+- 20 Validator-Edge-Cases per Unit-Test verifiziert (RFC1918-Bereiche,
+  Boundary-Ranges fuer 172.16/12, public IPs, Loopback, leere Strings,
+  ung&uuml;ltige Formate).
+
 ## [0.4.0] - 2026-05-04
 
 ### Added
@@ -205,7 +243,8 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Noch keine funktionale Implementierung
 - Cloudflare-Account, KV, R2, Access-App noch nicht provisioniert
 
-[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.4...v0.3.0

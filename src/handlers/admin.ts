@@ -5,9 +5,9 @@ import type { Env, Target } from "../types.js";
 import { requireUser } from "../lib/jwt.js";
 import {
   isAdmin,
-  isValidIpv4OrCidr,
   isValidPort,
   isValidTargetId,
+  validateTargetIp,
 } from "../lib/admin.js";
 import {
   getTarget,
@@ -107,10 +107,9 @@ export async function handleAdminCreateTarget(
   if (!label || label.length > 100) {
     return new Response("label required (1..100 chars)", { status: 400 });
   }
-  if (!isValidIpv4OrCidr(ip)) {
-    return new Response(`ip invalid: expected IPv4 or CIDR, got "${ip}"`, {
-      status: 400,
-    });
+  const ipErr = validateTargetIp(ip);
+  if (ipErr) {
+    return new Response(`ip invalid: ${ipErr}`, { status: 400 });
   }
   if (!isValidPort(port)) {
     return new Response("port invalid: expected integer 1..65535", {
@@ -203,8 +202,9 @@ export async function handleAdminUpdateTarget(
   }
   if (body.ip !== undefined) {
     const v = String(body.ip).trim();
-    if (!isValidIpv4OrCidr(v)) {
-      return new Response(`ip invalid: ${v}`, { status: 400 });
+    const ipErr = validateTargetIp(v);
+    if (ipErr) {
+      return new Response(`ip invalid: ${ipErr}`, { status: 400 });
     }
     if (v !== existing.ip) {
       updated.ip = v;
