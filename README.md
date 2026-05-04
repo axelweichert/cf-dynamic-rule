@@ -4,7 +4,7 @@ Self-Service-Portal für temporären Zero-Trust-Zugriff auf interne Ressourcen.
 Läuft als Cloudflare Worker, erstellt zeitlich begrenzte Gateway-Network-Allow-Policies
 für authentifizierte Nutzer (Azure AD via Cloudflare Access).
 
-**Status:** 0.3.0 (UI-Redesign, demo-ready)
+**Status:** 0.3.1 (UI-Redesign, demo-ready)
 **Tenant:** Busch GmbH NFR Demo
 **Domain:** dynamic-access.vonbusch.app
 

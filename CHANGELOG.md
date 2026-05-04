@@ -7,6 +7,21 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-05-04
+
+### Changed
+- **Anzeigename "Dynamic Rule"** statt `cf-dynamic-rule` in der UI:
+  - Browser-Title (`<title>`)
+  - Header-Wortmarke neben dem Logo
+  - Footer-Label
+
+### Notes
+- Repo-Name, Worker-Name (`cf-dynamic-rule`), Domain
+  (`dynamic-access.vonbusch.app`) und Tag-Prefix in den Gateway-Rule-
+  Descriptions (`cf-dynamic-rule|<email>|<expiry>`) bleiben unver&auml;ndert.
+  Ein Rename des Tag-Prefix w&uuml;rde existierende aktive Rules vor dem
+  Cleanup unsichtbar machen.
+
 ## [0.3.0] - 2026-05-04
 
 ### Changed
@@ -147,7 +162,8 @@ Versionierung: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Noch keine funktionale Implementierung
 - Cloudflare-Account, KV, R2, Access-App noch nicht provisioniert
 
-[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.4...v0.3.0
 [0.2.4]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/axelweichert/cf-dynamic-rule/compare/v0.2.2...v0.2.3

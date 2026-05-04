@@ -175,7 +175,7 @@ function renderHtml(email: string, targets: Target[], ttl: string): string {
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <title>cf-dynamic-rule &mdash; Self-Service Zero Trust</title>
+  <title>Dynamic Rule &mdash; Self-Service Zero Trust</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>${CSS}</style>
 </head>
@@ -184,7 +184,7 @@ function renderHtml(email: string, targets: Target[], ttl: string): string {
     <div class="brand">
       ${VON_BUSCH_LOGO_SVG}
       <span class="sep"></span>
-      <span class="app-name">cf-dynamic-rule</span>
+      <span class="app-name">Dynamic Rule</span>
     </div>
     <div class="user">
       <span class="email">${escapeHtml(email)}</span>
@@ -227,7 +227,7 @@ function renderHtml(email: string, targets: Target[], ttl: string): string {
   </main>
 
   <footer>
-    cf-dynamic-rule &middot; <code>dynamic-access.vonbusch.app</code> &middot; von Busch GmbH
+    Dynamic Rule &middot; <code>dynamic-access.vonbusch.app</code> &middot; von Busch GmbH
   </footer>
 
 <script>
