@@ -632,14 +632,21 @@ async function refreshActive() {
       activeEl.innerHTML = '<div class="empty">Keine aktiven Freigaben.</div>';
       return;
     }
+    const adminScope = j.scope === 'all';
     const rows = j.active.map(function(a) {
+      const isOwn = (a.user || '').toLowerCase() === (__USER_EMAIL || '').toLowerCase();
+      const userCell = adminScope
+        ? '<td>' + escHtml(a.user || '') + (isOwn ? ' <span class="badge info" style="font-size:10px; padding:2px 6px;">eigene</span>' : '') + '</td>'
+        : '';
       return '<tr>'
+        + userCell
         + '<td class="target">' + escHtml(a.target_id) + '</td>'
         + '<td class="expiry">' + escHtml(fmtDate(a.valid_until)) + '</td>'
-        + '<td class="action"><button class="outline danger" data-id="' + escHtml(a.rule_id) + '">Beenden</button></td>'
+        + '<td class="action"><button class="outline danger" data-id="' + escHtml(a.rule_id) + '" data-user="' + escHtml(a.user || '') + '">Beenden</button></td>'
       + '</tr>';
     }).join('');
-    activeEl.innerHTML = '<table><thead><tr><th>Target</th><th>G&uuml;ltig bis</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+    const headerCols = (adminScope ? '<th>User</th>' : '') + '<th>Target</th><th>G&uuml;ltig bis</th><th></th>';
+    activeEl.innerHTML = '<table><thead><tr>' + headerCols + '</tr></thead><tbody>' + rows + '</tbody></table>';
     activeEl.querySelectorAll('button.danger').forEach(function(b) { b.addEventListener('click', revoke); });
   } catch (e) {
     activeEl.innerHTML = '<div class="empty">Netz-Fehler: ' + escHtml(e.message) + '</div>';
@@ -648,7 +655,12 @@ async function refreshActive() {
 
 async function revoke(ev) {
   const id = ev.currentTarget.getAttribute('data-id');
-  if (!confirm('Freigabe vorzeitig beenden?\\n\\nRule: ' + id)) return;
+  const ruleUser = ev.currentTarget.getAttribute('data-user') || '';
+  const isOwn = ruleUser.toLowerCase() === (__USER_EMAIL || '').toLowerCase();
+  const msg = isOwn
+    ? 'Freigabe vorzeitig beenden?\\n\\nRule: ' + id
+    : 'Fremde Freigabe von ' + ruleUser + ' vorzeitig beenden?\\n\\nRule: ' + id + '\\n\\nDiese Aktion landet im Audit-Log.';
+  if (!confirm(msg)) return;
   ev.currentTarget.disabled = true;
   ev.currentTarget.textContent = 'beende ...';
   const r = await fetch('/api/rule/' + encodeURIComponent(id), { method: 'DELETE' });
