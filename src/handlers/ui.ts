@@ -343,7 +343,7 @@ function renderHtml(email: string, targets: Target[], ttl: string, admin: boolea
     <!-- Tab: Admin -- Paket-Verwaltung (v0.5.0) -->
     <section class="panel" data-panel="admin-packages">
       <h1 class="page">Zugriffspakete</h1>
-      <p class="lede">Vorbestellte Zugriffsfenster f&uuml;r einen User auf ein konkretes Ziel. <strong>Vier-Augen-Prinzip:</strong> ein Paket ist erst aktiv, wenn ein <em>anderer</em> Admin als der Ersteller es freischaltet.</p>
+      <p class="lede">Vorbestellte Zugriffsfenster f&uuml;r einen User auf ein konkretes Ziel. <strong>Freigabe-Regel:</strong> ein Paket ist erst aktiv, wenn ein Admin es explizit freischaltet. Selbst-Freischaltung (Ersteller = Freischalter) ist erlaubt, wird aber im Audit-Log als <code>self_approved</code> markiert.</p>
 
       <div class="card">
         <div class="card-header">
@@ -555,7 +555,7 @@ async function refreshMyPackages() {
         : '';
       const button = p.approved
         ? '<button class="primary" data-pkg="' + escHtml(p.id) + '">Zugriff anfordern</button>'
-        : '<button class="primary" disabled title="Ein anderer Admin als der Ersteller muss das Paket erst freischalten (Vier-Augen-Prinzip).">wartet auf Freischaltung</button>';
+        : '<button class="primary" disabled title="Ein Admin muss das Paket erst freischalten.">wartet auf Freischaltung</button>';
       return '<div class="card" style="border: 1px solid #e5e7eb; padding: 16px; margin-bottom: 12px;">'
         + '<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">'
         +   '<div style="flex: 1;">'
@@ -1006,11 +1006,10 @@ async function refreshPackagesList() {
       const isOwn = (p.created_by || '').toLowerCase() === (__USER_EMAIL || '').toLowerCase();
       let actions = '';
       if (!approved && !used) {
-        if (isOwn) {
-          actions += '<button class="outline" disabled title="Vier-Augen-Prinzip: eigene Pakete nicht freischaltbar">Freischalten</button>';
-        } else {
-          actions += '<button class="outline" data-act="pkg-approve" data-id="' + escHtml(p.id) + '">Freischalten</button>';
-        }
+        const tooltip = isOwn
+          ? 'Hinweis: Du schaltest dein eigenes Paket frei. Im Audit als Selbst-Freischaltung markiert.'
+          : 'Vier-Augen-Freischaltung durch anderen Admin.';
+        actions += '<button class="outline" data-act="pkg-approve" data-id="' + escHtml(p.id) + '" title="' + escHtml(tooltip) + '">Freischalten' + (isOwn ? ' (selbst)' : '') + '</button>';
       } else if (approved && !used) {
         actions += '<button class="outline" data-act="pkg-revoke" data-id="' + escHtml(p.id) + '">Freischaltung zur&uuml;cknehmen</button>';
       }
