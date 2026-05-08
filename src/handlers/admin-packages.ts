@@ -155,28 +155,29 @@ export async function handleAdminApprovePackage(
   const existing = await getPackage(env, id);
   if (!existing) return new Response("package not found", { status: 404 });
 
-  // Vier-Augen-Prinzip ist bevorzugt, aber Operations-Realitaet (Krankheit,
-  // Urlaub, Notfall) erlaubt Selbst-Freischaltung. Im Audit-Log bleibt
-  // approved_by/created_by sichtbar -- Selbst-Freischaltung ist also
-  // jederzeit nachvollziehbar.
+  // Approve hat keine Constraints (auch nicht Vier-Augen). created_by und
+  // approved_by stehen im Audit -- daraus laesst sich nachtraeglich pruefen
+  // wer angelegt und wer freigeschaltet hat.
 
   if (existing.approved) {
     return Response.json({ package: existing, message: "already approved" });
   }
 
   const updated = await approvePackage(env, id, adminEmail);
-  const selfApproved =
-    existing.created_by.toLowerCase() === adminEmail.toLowerCase();
 
   await audit(env, {
     ts: new Date().toISOString(),
     event: "admin_package_approve",
     user: adminEmail,
+    target_id: existing.target_id,
     details: {
       package_id: id,
       approved_by: adminEmail,
       created_by: existing.created_by,
-      self_approved: selfApproved,
+      user_id: existing.user_id,
+      valid_from: existing.valid_from,
+      valid_until: existing.valid_until,
+      duration_min: existing.duration_min,
     },
   });
 

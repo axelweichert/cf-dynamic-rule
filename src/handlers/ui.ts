@@ -343,7 +343,7 @@ function renderHtml(email: string, targets: Target[], ttl: string, admin: boolea
     <!-- Tab: Admin -- Paket-Verwaltung (v0.5.0) -->
     <section class="panel" data-panel="admin-packages">
       <h1 class="page">Zugriffspakete</h1>
-      <p class="lede">Vorbestellte Zugriffsfenster f&uuml;r einen User auf ein konkretes Ziel. <strong>Freigabe-Regel:</strong> ein Paket ist erst aktiv, wenn ein Admin es explizit freischaltet. Selbst-Freischaltung (Ersteller = Freischalter) ist erlaubt, wird aber im Audit-Log als <code>self_approved</code> markiert.</p>
+      <p class="lede">Vorbestellte Zugriffsfenster f&uuml;r einen User auf ein konkretes Ziel. Ein Paket ist erst aktiv, wenn ein Admin es freischaltet. Alle Aktionen (Anlegen, Freischalten, Zur&uuml;cknehmen, L&ouml;schen, Nutzung) landen im R2-Audit-Log.</p>
 
       <div class="card">
         <div class="card-header">
@@ -1003,13 +1003,9 @@ async function refreshPackagesList() {
       } else {
         statusBadge = '<span class="badge warn"><span class="dot"></span>wartet auf Freischaltung</span>';
       }
-      const isOwn = (p.created_by || '').toLowerCase() === (__USER_EMAIL || '').toLowerCase();
       let actions = '';
       if (!approved && !used) {
-        const tooltip = isOwn
-          ? 'Hinweis: Du schaltest dein eigenes Paket frei. Im Audit als Selbst-Freischaltung markiert.'
-          : 'Vier-Augen-Freischaltung durch anderen Admin.';
-        actions += '<button class="outline" data-act="pkg-approve" data-id="' + escHtml(p.id) + '" title="' + escHtml(tooltip) + '">Freischalten' + (isOwn ? ' (selbst)' : '') + '</button>';
+        actions += '<button class="outline" data-act="pkg-approve" data-id="' + escHtml(p.id) + '">Freischalten</button>';
       } else if (approved && !used) {
         actions += '<button class="outline" data-act="pkg-revoke" data-id="' + escHtml(p.id) + '">Freischaltung zur&uuml;cknehmen</button>';
       }
