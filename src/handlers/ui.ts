@@ -259,6 +259,8 @@ function renderHtml(email: string, targets: Target[], ttl: string, admin: boolea
     <div class="tabbar-inner">
       <button class="tab active" data-tab="access">Zugriff anfordern</button>
       <button class="tab ${admin ? "" : "hidden"}" data-tab="admin">Admin &mdash; Targets</button>
+      <button class="tab ${admin ? "" : "hidden"}" data-tab="admin-users">Admin &mdash; User</button>
+      <button class="tab ${admin ? "" : "hidden"}" data-tab="admin-packages">Admin &mdash; Pakete</button>
     </div>
   </nav>
 
@@ -317,7 +319,35 @@ function renderHtml(email: string, targets: Target[], ttl: string, admin: boolea
       </div>
     </section>
 
-    <!-- Modal fuer Add/Edit (admin) -->
+    <!-- Tab: Admin -- User-Verwaltung (v0.5.0) -->
+    <section class="panel" data-panel="admin-users">
+      <h1 class="page">User-Verwaltung</h1>
+      <p class="lede">Bekannte User, f&uuml;r die Zugriffspakete angelegt werden k&ouml;nnen. User identifizieren sich beim Login &uuml;ber ihre E-Mail-Adresse (Cloudflare Access).</p>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>User</h2>
+          <button id="users-add" class="primary">+ Neuer User</button>
+        </div>
+        <div id="users-list"><div class="empty">l&auml;dt &hellip;</div></div>
+      </div>
+    </section>
+
+    <!-- Tab: Admin -- Paket-Verwaltung (v0.5.0) -->
+    <section class="panel" data-panel="admin-packages">
+      <h1 class="page">Zugriffspakete</h1>
+      <p class="lede">Vorbestellte Zugriffsfenster f&uuml;r einen User auf ein konkretes Ziel. <strong>Vier-Augen-Prinzip:</strong> ein Paket ist erst aktiv, wenn ein <em>anderer</em> Admin als der Ersteller es freischaltet.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>Pakete</h2>
+          <button id="packages-add" class="primary">+ Neues Paket</button>
+        </div>
+        <div id="packages-list"><div class="empty">l&auml;dt &hellip;</div></div>
+      </div>
+    </section>
+
+    <!-- Modal fuer Add/Edit (admin -- targets) -->
     <div id="modal" class="modal-backdrop" hidden>
       <div class="modal">
         <h3 id="modal-title">Neues Target</h3>
@@ -359,6 +389,64 @@ function renderHtml(email: string, targets: Target[], ttl: string, admin: boolea
         </div>
       </div>
     </div>
+
+    <!-- Modal fuer User-Add -->
+    <div id="user-modal" class="modal-backdrop" hidden>
+      <div class="modal">
+        <h3 id="user-modal-title">Neuer User</h3>
+        <div class="field">
+          <label for="u-email">E-Mail</label>
+          <input type="email" id="u-email" placeholder="vorname.nachname@example.com" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="u-label">Anzeigename <span style="color:#9ca3af; font-weight: 400;">(optional)</span></label>
+          <input type="text" id="u-label" placeholder="z.B. Max Mustermann (Externer Berater)" autocomplete="off">
+        </div>
+        <div id="u-err" class="err-line"></div>
+        <div class="actions">
+          <button id="u-cancel" class="ghost">Abbrechen</button>
+          <button id="u-save" class="primary">Anlegen</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal fuer Paket-Add -->
+    <div id="package-modal" class="modal-backdrop" hidden>
+      <div class="modal">
+        <h3 id="package-modal-title">Neues Zugriffspaket</h3>
+        <div class="field">
+          <label for="p-user">User</label>
+          <select id="p-user"></select>
+        </div>
+        <div class="field">
+          <label for="p-target">Ziel</label>
+          <select id="p-target"></select>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="p-from">G&uuml;ltig ab</label>
+            <input type="datetime-local" id="p-from">
+          </div>
+          <div class="field">
+            <label for="p-until">G&uuml;ltig bis</label>
+            <input type="datetime-local" id="p-until">
+          </div>
+        </div>
+        <div class="field">
+          <label for="p-duration">Dauer der Allow-Rule beim Klick (Minuten)</label>
+          <input type="number" id="p-duration" min="1" max="1440" value="20">
+        </div>
+        <div class="field">
+          <label for="p-note">Notiz <span style="color:#9ca3af; font-weight: 400;">(optional)</span></label>
+          <input type="text" id="p-note" placeholder="z.B. Wartung Telefonanlage am 12.05." autocomplete="off">
+        </div>
+        <div id="p-err" class="err-line"></div>
+        <div class="actions">
+          <button id="p-cancel" class="ghost">Abbrechen</button>
+          <button id="p-save" class="primary">Anlegen</button>
+        </div>
+      </div>
+    </div>
   </main>
 
   <footer>
@@ -366,6 +454,7 @@ function renderHtml(email: string, targets: Target[], ttl: string, admin: boolea
   </footer>
 
 <script>
+const __USER_EMAIL = ${JSON.stringify(email)};
 const out = document.getElementById('out');
 const go = document.getElementById('go');
 const sel = document.getElementById('target');
@@ -383,6 +472,28 @@ const mErr = document.getElementById('m-err');
 const mCancel = document.getElementById('m-cancel');
 const mSave = document.getElementById('m-save');
 let editingId = null;
+
+// User-Modal
+const userModal = document.getElementById('user-modal');
+const uEmail = document.getElementById('u-email');
+const uLabel = document.getElementById('u-label');
+const uErr = document.getElementById('u-err');
+const uCancel = document.getElementById('u-cancel');
+const uSave = document.getElementById('u-save');
+const usersListEl = document.getElementById('users-list');
+
+// Package-Modal
+const packageModal = document.getElementById('package-modal');
+const pUserSel = document.getElementById('p-user');
+const pTargetSel = document.getElementById('p-target');
+const pFrom = document.getElementById('p-from');
+const pUntil = document.getElementById('p-until');
+const pDuration = document.getElementById('p-duration');
+const pNote = document.getElementById('p-note');
+const pErr = document.getElementById('p-err');
+const pCancel = document.getElementById('p-cancel');
+const pSave = document.getElementById('p-save');
+const packagesListEl = document.getElementById('packages-list');
 
 function fmtDate(iso) {
   try {
@@ -405,6 +516,8 @@ document.querySelectorAll('.tab').forEach(function(btn) {
       p.classList.toggle('active', p.getAttribute('data-panel') === tab);
     });
     if (tab === 'admin') refreshAdminList();
+    if (tab === 'admin-users') refreshUsersList();
+    if (tab === 'admin-packages') refreshPackagesList();
   });
 });
 
@@ -633,7 +746,303 @@ if (adminAddBtn) adminAddBtn.addEventListener('click', function() { openModal(nu
 
 document.addEventListener('keydown', function(ev) {
   if (ev.key === 'Escape' && !modal.hidden) closeModal();
+  if (ev.key === 'Escape' && !userModal.hidden) closeUserModal();
+  if (ev.key === 'Escape' && !packageModal.hidden) closePackageModal();
 });
+
+// --- Admin-Tab: User-Verwaltung (v0.5.0) ---
+
+let __USERS_CACHE = [];
+let __TARGETS_CACHE = [];
+
+async function refreshUsersList() {
+  if (!usersListEl) return;
+  try {
+    const r = await fetch('/api/admin/users');
+    if (!r.ok) {
+      usersListEl.innerHTML = '<div class="empty">Fehler beim Laden: ' + escHtml(await r.text()) + '</div>';
+      return;
+    }
+    const j = await r.json();
+    __USERS_CACHE = j.users || [];
+    if (__USERS_CACHE.length === 0) {
+      usersListEl.innerHTML = '<div class="empty">Noch keine User. Klick auf &bdquo;Neuer User&ldquo; um zu starten.</div>';
+      return;
+    }
+    const rows = __USERS_CACHE.map(function(u) {
+      const disabled = u.disabled === true;
+      const statusBadge = disabled
+        ? '<span class="badge muted"><span class="dot"></span>inaktiv</span>'
+        : '<span class="badge ok"><span class="dot"></span>aktiv</span>';
+      const actions = disabled
+        ? '<button class="outline" data-act="user-enable" data-id="' + escHtml(u.id) + '">Aktivieren</button>'
+        : '<button class="outline danger" data-act="user-disable" data-id="' + escHtml(u.id) + '">Deaktivieren</button>';
+      return '<tr' + (disabled ? ' class="disabled-row"' : '') + '>'
+        + '<td>' + escHtml(u.email) + '<div class="target-id">' + escHtml(u.label || '') + '</div></td>'
+        + '<td>' + escHtml(fmtDate(u.created_at)) + '</td>'
+        + '<td>' + escHtml(u.created_by || '') + '</td>'
+        + '<td>' + statusBadge + '</td>'
+        + '<td class="action">' + actions + '</td>'
+      + '</tr>';
+    }).join('');
+    usersListEl.innerHTML = '<table><thead><tr><th>E-Mail</th><th>Angelegt</th><th>Von</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+    usersListEl.querySelectorAll('button[data-act]').forEach(function(b) {
+      b.addEventListener('click', onUserAction);
+    });
+  } catch (e) {
+    usersListEl.innerHTML = '<div class="empty">Netz-Fehler: ' + escHtml(e.message) + '</div>';
+  }
+}
+
+async function onUserAction(ev) {
+  const id = ev.currentTarget.getAttribute('data-id');
+  const act = ev.currentTarget.getAttribute('data-act');
+  if (act === 'user-disable') {
+    if (!confirm('User deaktivieren?\\n\\nDeaktivierte User k\\u00f6nnen keine neuen Pakete erhalten. Bestehende Pakete bleiben unber\\u00fchrt.')) return;
+    ev.currentTarget.disabled = true;
+    const r = await fetch('/api/admin/users/' + encodeURIComponent(id), { method: 'DELETE' });
+    if (!r.ok) { alert('Fehler: ' + (await r.text())); }
+    refreshUsersList();
+  } else if (act === 'user-enable') {
+    ev.currentTarget.disabled = true;
+    const r = await fetch('/api/admin/users/' + encodeURIComponent(id), {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ disabled: false }),
+    });
+    if (!r.ok) { alert('Fehler: ' + (await r.text())); }
+    refreshUsersList();
+  }
+}
+
+function openUserModal() {
+  uErr.textContent = '';
+  uEmail.value = '';
+  uLabel.value = '';
+  userModal.hidden = false;
+  setTimeout(function() { uEmail.focus(); }, 50);
+}
+function closeUserModal() { userModal.hidden = true; uErr.textContent = ''; }
+
+uCancel.addEventListener('click', closeUserModal);
+userModal.addEventListener('click', function(ev) { if (ev.target === userModal) closeUserModal(); });
+
+uSave.addEventListener('click', async function() {
+  uErr.textContent = '';
+  const payload = {
+    email: uEmail.value.trim(),
+    label: uLabel.value.trim() || null,
+  };
+  uSave.disabled = true;
+  uSave.textContent = 'speichere ...';
+  try {
+    const r = await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) {
+      uErr.textContent = 'Fehler ' + r.status + ': ' + (await r.text());
+      return;
+    }
+    closeUserModal();
+    refreshUsersList();
+  } catch (e) {
+    uErr.textContent = 'Netz-Fehler: ' + e.message;
+  } finally {
+    uSave.disabled = false;
+    uSave.textContent = 'Anlegen';
+  }
+});
+
+const usersAddBtn = document.getElementById('users-add');
+if (usersAddBtn) usersAddBtn.addEventListener('click', openUserModal);
+
+// --- Admin-Tab: Paket-Verwaltung (v0.5.0) ---
+
+async function refreshPackagesList() {
+  if (!packagesListEl) return;
+  try {
+    // User- und Target-Cache parallel laden, falls noch nicht da.
+    const promises = [fetch('/api/admin/packages')];
+    if (__USERS_CACHE.length === 0) promises.push(fetch('/api/admin/users'));
+    if (__TARGETS_CACHE.length === 0) promises.push(fetch('/api/admin/targets'));
+    const responses = await Promise.all(promises);
+    const pkgRes = responses[0];
+    if (!pkgRes.ok) {
+      packagesListEl.innerHTML = '<div class="empty">Fehler beim Laden: ' + escHtml(await pkgRes.text()) + '</div>';
+      return;
+    }
+    const pkgJson = await pkgRes.json();
+    let idx = 1;
+    if (__USERS_CACHE.length === 0 && responses[idx]) {
+      const j = await responses[idx].json();
+      __USERS_CACHE = j.users || [];
+      idx++;
+    }
+    if (__TARGETS_CACHE.length === 0 && responses[idx]) {
+      const j = await responses[idx].json();
+      __TARGETS_CACHE = j.targets || [];
+    }
+    const userById = Object.fromEntries(__USERS_CACHE.map(function(u) { return [u.id, u]; }));
+    const targetById = Object.fromEntries(__TARGETS_CACHE.map(function(t) { return [t.id, t]; }));
+
+    const packages = pkgJson.packages || [];
+    if (packages.length === 0) {
+      packagesListEl.innerHTML = '<div class="empty">Noch keine Pakete. Klick auf &bdquo;Neues Paket&ldquo; um zu starten.</div>';
+      return;
+    }
+    const rows = packages.map(function(p) {
+      const u = userById[p.user_id] || { email: p.user_id, label: '' };
+      const t = targetById[p.target_id] || { label: p.target_id, ip: '?', port: '?' };
+      const approved = p.approved === true;
+      const used = !!p.used_at;
+      let statusBadge;
+      if (used) {
+        statusBadge = '<span class="badge muted"><span class="dot"></span>genutzt</span>';
+      } else if (approved) {
+        statusBadge = '<span class="badge ok"><span class="dot"></span>freigeschaltet</span>';
+      } else {
+        statusBadge = '<span class="badge warn"><span class="dot"></span>wartet auf Freischaltung</span>';
+      }
+      const isOwn = (p.created_by || '').toLowerCase() === (__USER_EMAIL || '').toLowerCase();
+      let actions = '';
+      if (!approved && !used) {
+        if (isOwn) {
+          actions += '<button class="outline" disabled title="Vier-Augen-Prinzip: eigene Pakete nicht freischaltbar">Freischalten</button>';
+        } else {
+          actions += '<button class="outline" data-act="pkg-approve" data-id="' + escHtml(p.id) + '">Freischalten</button>';
+        }
+      } else if (approved && !used) {
+        actions += '<button class="outline" data-act="pkg-revoke" data-id="' + escHtml(p.id) + '">Freischaltung zur&uuml;cknehmen</button>';
+      }
+      actions += '<button class="outline danger" data-act="pkg-delete" data-id="' + escHtml(p.id) + '">L&ouml;schen</button>';
+      return '<tr>'
+        + '<td>' + escHtml(u.email) + (u.label ? '<div class="target-id">' + escHtml(u.label) + '</div>' : '') + '</td>'
+        + '<td>' + escHtml(t.label || p.target_id) + '<div class="target-id">' + escHtml(t.ip || '') + ':' + escHtml(String(t.port || '')) + '</div></td>'
+        + '<td class="expiry">' + escHtml(fmtDate(p.valid_from)) + '<div class="target-id">bis ' + escHtml(fmtDate(p.valid_until)) + '</div></td>'
+        + '<td>' + escHtml(String(p.duration_min)) + ' min</td>'
+        + '<td>' + statusBadge + (approved && p.approved_by ? '<div class="target-id">durch ' + escHtml(p.approved_by) + '</div>' : '') + '</td>'
+        + '<td class="action">' + actions + '</td>'
+      + '</tr>';
+    }).join('');
+    packagesListEl.innerHTML = '<table><thead><tr><th>User</th><th>Ziel</th><th>G&uuml;ltigkeit</th><th>Dauer</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+    packagesListEl.querySelectorAll('button[data-act]').forEach(function(b) {
+      b.addEventListener('click', onPackageAction);
+    });
+  } catch (e) {
+    packagesListEl.innerHTML = '<div class="empty">Netz-Fehler: ' + escHtml(e.message) + '</div>';
+  }
+}
+
+async function onPackageAction(ev) {
+  const id = ev.currentTarget.getAttribute('data-id');
+  const act = ev.currentTarget.getAttribute('data-act');
+  if (act === 'pkg-approve') {
+    if (!confirm('Paket freischalten?\\n\\nDamit wird es f\\u00fcr den User sichtbar und nutzbar.')) return;
+    ev.currentTarget.disabled = true;
+    const r = await fetch('/api/admin/packages/' + encodeURIComponent(id) + '/approve', { method: 'POST' });
+    if (!r.ok) { alert('Fehler: ' + (await r.text())); }
+    refreshPackagesList();
+  } else if (act === 'pkg-revoke') {
+    if (!confirm('Freischaltung zur\\u00fccknehmen?\\n\\nDer User verliert den Zugriff auf das Paket. Bereits genutzte Allow-Rules bleiben bis Ablauf bestehen.')) return;
+    ev.currentTarget.disabled = true;
+    const r = await fetch('/api/admin/packages/' + encodeURIComponent(id) + '/approval', { method: 'DELETE' });
+    if (!r.ok) { alert('Fehler: ' + (await r.text())); }
+    refreshPackagesList();
+  } else if (act === 'pkg-delete') {
+    if (!confirm('Paket endg\\u00fcltig l\\u00f6schen?\\n\\nDas l\\u00e4sst sich nicht r\\u00fcckg\\u00e4ngig machen. Aktive Allow-Rules bleiben bestehen, bis sie ablaufen.')) return;
+    ev.currentTarget.disabled = true;
+    const r = await fetch('/api/admin/packages/' + encodeURIComponent(id), { method: 'DELETE' });
+    if (!r.ok) { alert('Fehler: ' + (await r.text())); }
+    refreshPackagesList();
+  }
+}
+
+function openPackageModal() {
+  pErr.textContent = '';
+  // User-Optionen befuellen (nur aktive)
+  const activeUsers = __USERS_CACHE.filter(function(u) { return u.disabled !== true; });
+  pUserSel.innerHTML = activeUsers.length === 0
+    ? '<option value="">(Keine aktiven User)</option>'
+    : '<option value="">&mdash; bitte w&auml;hlen &mdash;</option>' + activeUsers.map(function(u) {
+        return '<option value="' + escHtml(u.id) + '">' + escHtml(u.email) + (u.label ? ' (' + escHtml(u.label) + ')' : '') + '</option>';
+      }).join('');
+  // Target-Optionen befuellen (nur aktive)
+  const activeTargets = __TARGETS_CACHE.filter(function(t) { return t.disabled !== true; });
+  pTargetSel.innerHTML = activeTargets.length === 0
+    ? '<option value="">(Keine aktiven Targets)</option>'
+    : '<option value="">&mdash; bitte w&auml;hlen &mdash;</option>' + activeTargets.map(function(t) {
+        return '<option value="' + escHtml(t.id) + '">' + escHtml(t.label) + ' &mdash; ' + escHtml(t.ip) + ':' + t.port + '/' + escHtml(t.protocol) + '</option>';
+      }).join('');
+  // Default-Werte: Gueltig ab jetzt, bis +1 Tag, Dauer 20 min
+  const now = new Date();
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  pFrom.value = toLocalIso(now);
+  pUntil.value = toLocalIso(tomorrow);
+  pDuration.value = '20';
+  pNote.value = '';
+  packageModal.hidden = false;
+  setTimeout(function() { pUserSel.focus(); }, 50);
+}
+function closePackageModal() { packageModal.hidden = true; pErr.textContent = ''; }
+
+function toLocalIso(d) {
+  // Format fuer <input type="datetime-local"> ohne Sekunden, in Local-Time.
+  const pad = function(n) { return String(n).padStart(2, '0'); };
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate())
+    + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
+pCancel.addEventListener('click', closePackageModal);
+packageModal.addEventListener('click', function(ev) { if (ev.target === packageModal) closePackageModal(); });
+
+pSave.addEventListener('click', async function() {
+  pErr.textContent = '';
+  const userId = pUserSel.value;
+  const targetId = pTargetSel.value;
+  const fromVal = pFrom.value;
+  const untilVal = pUntil.value;
+  const duration = parseInt(pDuration.value, 10);
+  const note = pNote.value.trim() || null;
+  if (!userId) { pErr.textContent = 'User w\\u00e4hlen'; return; }
+  if (!targetId) { pErr.textContent = 'Ziel w\\u00e4hlen'; return; }
+  if (!fromVal || !untilVal) { pErr.textContent = 'G\\u00fcltigkeit angeben'; return; }
+  // datetime-local liefert "YYYY-MM-DDTHH:MM" in Local-Time. In ISO mit Z umrechnen.
+  const validFrom = new Date(fromVal).toISOString();
+  const validUntil = new Date(untilVal).toISOString();
+  const payload = {
+    user_id: userId,
+    target_id: targetId,
+    valid_from: validFrom,
+    valid_until: validUntil,
+    duration_min: duration,
+    note: note,
+  };
+  pSave.disabled = true;
+  pSave.textContent = 'speichere ...';
+  try {
+    const r = await fetch('/api/admin/packages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) {
+      pErr.textContent = 'Fehler ' + r.status + ': ' + (await r.text());
+      return;
+    }
+    closePackageModal();
+    refreshPackagesList();
+  } catch (e) {
+    pErr.textContent = 'Netz-Fehler: ' + e.message;
+  } finally {
+    pSave.disabled = false;
+    pSave.textContent = 'Anlegen';
+  }
+});
+
+const packagesAddBtn = document.getElementById('packages-add');
+if (packagesAddBtn) packagesAddBtn.addEventListener('click', openPackageModal);
 
 refreshActive();
 </script>
