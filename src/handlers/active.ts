@@ -23,11 +23,23 @@ export async function handleActive(request: Request, env: Env): Promise<Response
   const prefix = env.RULE_TAG_PREFIX;
   const now = new Date();
   const out = [];
+  let nUnparsed = 0;
+  let nExpired = 0;
+  let nNotMine = 0;
   for (const r of all) {
     const parsed = parseManagedDescription(r.description ?? "", prefix);
-    if (!parsed) continue;
-    if (parsed.expiresAt <= now) continue;
-    if (!admin && parsed.email.toLowerCase() !== user.email.toLowerCase()) continue;
+    if (!parsed) {
+      nUnparsed++;
+      continue;
+    }
+    if (parsed.expiresAt <= now) {
+      nExpired++;
+      continue;
+    }
+    if (!admin && parsed.email.toLowerCase() !== user.email.toLowerCase()) {
+      nNotMine++;
+      continue;
+    }
     out.push({
       rule_id: r.id,
       name: r.name,
@@ -36,6 +48,17 @@ export async function handleActive(request: Request, env: Env): Promise<Response
       valid_until: parsed.expiresAt.toISOString(),
     });
   }
+  console.log("active_debug", JSON.stringify({
+    caller: user.email,
+    admin,
+    prefix,
+    total_rules: all.length,
+    unparsed: nUnparsed,
+    expired: nExpired,
+    not_mine: nNotMine,
+    returned: out.length,
+    sample_descriptions: all.slice(0, 5).map((r) => r.description ?? ""),
+  }));
   return Response.json({ active: out, scope: admin ? "all" : "self" });
 }
 

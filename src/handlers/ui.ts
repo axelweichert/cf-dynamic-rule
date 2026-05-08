@@ -216,7 +216,10 @@ export async function handleUi(request: Request, env: Env): Promise<Response> {
 
   return new Response(html, {
     status: 200,
-    headers: { "content-type": "text/html; charset=utf-8" },
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store, no-cache, must-revalidate",
+    },
   });
 }
 
