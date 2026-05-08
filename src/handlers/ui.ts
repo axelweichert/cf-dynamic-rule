@@ -53,7 +53,7 @@ const CSS = `
     padding: 0 24px;
   }
   .tabbar-inner {
-    max-width: 880px; margin: 0 auto; display: flex; gap: 4px;
+    max-width: 1280px; margin: 0 auto; display: flex; gap: 4px;
   }
   .tab {
     background: transparent; border: 0; padding: 12px 16px;
@@ -68,7 +68,7 @@ const CSS = `
 
   main {
     flex: 1;
-    max-width: 880px;
+    max-width: 1280px;
     width: 100%;
     margin: 0 auto;
     padding: 32px 24px 64px;
