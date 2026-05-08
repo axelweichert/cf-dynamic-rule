@@ -282,7 +282,15 @@ function renderHtml(email: string, targets: Target[], ttl: string, admin: boolea
       </div>
 
       <div class="card">
-        <h2>Neuer Zugriff</h2>
+        <h2>Meine Zugriffspakete</h2>
+        <p class="lede" style="margin: 0 0 12px 0;">Ein Admin hat dir diese Zugriffsfenster vorbereitet. Klick auf &bdquo;Zugriff anfordern&ldquo;, um die Allow-Regel zu erstellen.</p>
+        <div id="my-packages"><div class="empty">l&auml;dt &hellip;</div></div>
+        <div id="out" hidden></div>
+      </div>
+
+      ${admin ? `<div class="card">
+        <h2>Sandbox-Auswahl <span class="admin-badge">ADMIN</span></h2>
+        <p class="lede" style="margin: 0 0 12px 0;">Direkter Self-Service-Pfad ohne Paket. Nur f&uuml;r Admins, f&uuml;r Tests und Notf&auml;lle.</p>
         <label for="target">Ziel ausw&auml;hlen</label>
         <select id="target" ${targets.length === 0 ? "disabled" : ""}>
           ${targets.length === 0 ? `<option value="">(Keine Targets verf&uuml;gbar)</option>` : `<option value="">&mdash; bitte w&auml;hlen &mdash;</option>`}
@@ -291,8 +299,7 @@ function renderHtml(email: string, targets: Target[], ttl: string, admin: boolea
         <div class="actions">
           <button id="go" class="primary" ${targets.length === 0 ? "disabled" : ""}>Zugriff anfordern</button>
         </div>
-        <div id="out" hidden></div>
-      </div>
+      </div>` : ""}
 
       <div class="card">
         <h2>Aktive Freigaben</h2>
@@ -456,8 +463,9 @@ function renderHtml(email: string, targets: Target[], ttl: string, admin: boolea
 <script>
 const __USER_EMAIL = ${JSON.stringify(email)};
 const out = document.getElementById('out');
-const go = document.getElementById('go');
-const sel = document.getElementById('target');
+const go = document.getElementById('go');           // nur fuer Admin: Sandbox
+const sel = document.getElementById('target');      // nur fuer Admin: Sandbox
+const myPackagesEl = document.getElementById('my-packages');
 const activeEl = document.getElementById('active');
 const adminListEl = document.getElementById('admin-list');
 const modal = document.getElementById('modal');
@@ -520,6 +528,83 @@ document.querySelectorAll('.tab').forEach(function(btn) {
     if (tab === 'admin-packages') refreshPackagesList();
   });
 });
+
+// --- User-Tab: meine Zugriffspakete (v0.5.0) ---
+async function refreshMyPackages() {
+  if (!myPackagesEl) return;
+  try {
+    const r = await fetch('/api/me');
+    if (!r.ok) {
+      myPackagesEl.innerHTML = '<div class="empty">Fehler beim Laden: ' + escHtml(await r.text()) + '</div>';
+      return;
+    }
+    const j = await r.json();
+    const packages = j.packages || [];
+    if (packages.length === 0) {
+      myPackagesEl.innerHTML = '<div class="empty">Aktuell keine eingeloesten Zugriffspakete f\\u00fcr dich. Sprich mit deinem Admin, wenn du Zugriff brauchst.</div>';
+      return;
+    }
+    const cards = packages.map(function(p) {
+      const t = p.target || {};
+      const note = p.note ? '<div class="target-id" style="margin-top: 8px; font-style: italic;">' + escHtml(p.note) + '</div>' : '';
+      return '<div class="card" style="border: 1px solid #e5e7eb; padding: 16px; margin-bottom: 12px;">'
+        + '<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">'
+        +   '<div style="flex: 1;">'
+        +     '<div style="font-weight: 600; font-size: 16px;">' + escHtml(t.label || p.target_id) + '</div>'
+        +     '<div class="target-id" style="margin-top: 4px;">' + escHtml(t.ip || '?') + ':' + escHtml(String(t.port || '?')) + ' / ' + escHtml(t.protocol || '?') + ' &mdash; ' + escHtml(t.service || '') + '</div>'
+        +     '<div class="target-id" style="margin-top: 6px;">G&uuml;ltig bis ' + escHtml(fmtDate(p.valid_until)) + ' &middot; Dauer beim Klick: ' + escHtml(String(p.duration_min)) + ' min</div>'
+        +     note
+        +   '</div>'
+        +   '<button class="primary" data-pkg="' + escHtml(p.id) + '">Zugriff anfordern</button>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+    myPackagesEl.innerHTML = cards;
+    myPackagesEl.querySelectorAll('button[data-pkg]').forEach(function(b) {
+      b.addEventListener('click', requestViaPackage);
+    });
+  } catch (e) {
+    myPackagesEl.innerHTML = '<div class="empty">Netz-Fehler: ' + escHtml(e.message) + '</div>';
+  }
+}
+
+async function requestViaPackage(ev) {
+  const pkgId = ev.currentTarget.getAttribute('data-pkg');
+  ev.currentTarget.disabled = true;
+  ev.currentTarget.textContent = 'beantrage ...';
+  out.hidden = false;
+  out.className = 'out';
+  out.innerHTML = '<div class="summary">Beantrage Zugriff &hellip;</div>';
+  try {
+    const r = await fetch('/api/request', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ package_id: pkgId }),
+    });
+    const txt = await r.text();
+    if (!r.ok) {
+      out.className = 'out err';
+      out.innerHTML = '<div class="summary">Fehler ' + r.status + '</div><pre>' + escHtml(txt) + '</pre>';
+    } else {
+      let parsed = null;
+      try { parsed = JSON.parse(txt); } catch (e) {}
+      if (parsed && parsed.valid_until) {
+        out.className = 'out ok';
+        out.innerHTML = '<div class="summary">Zugriff freigeschaltet bis ' + escHtml(fmtDate(parsed.valid_until)) + '</div><pre>' + escHtml(JSON.stringify(parsed, null, 2)) + '</pre>';
+      } else {
+        out.className = 'out ok';
+        out.innerHTML = '<pre>' + escHtml(txt) + '</pre>';
+      }
+      refreshActive();
+      refreshMyPackages();
+    }
+  } catch (e) {
+    out.className = 'out err';
+    out.innerHTML = '<div class="summary">Netz-Fehler</div><pre>' + escHtml(e.message) + '</pre>';
+  } finally {
+    // Karte wird ohnehin neu gerendert via refreshMyPackages
+  }
+}
 
 // --- User-Tab: aktive Freigaben ---
 async function refreshActive() {
@@ -1044,6 +1129,7 @@ pSave.addEventListener('click', async function() {
 const packagesAddBtn = document.getElementById('packages-add');
 if (packagesAddBtn) packagesAddBtn.addEventListener('click', openPackageModal);
 
+refreshMyPackages();
 refreshActive();
 </script>
 </body>
