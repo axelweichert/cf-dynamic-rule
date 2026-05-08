@@ -277,7 +277,7 @@ function renderHtml(email: string, targets: Target[], ttl: string, admin: boolea
       </div>
 
       <div class="card intro">
-        <p><strong>Was passiert hier?</strong> Mit einem Klick auf &bdquo;Zugriff anfordern&ldquo; wird automatisch eine Cloudflare-Gateway-Allow-Regel erstellt, die ausschliesslich auf deine Identit&auml;t (<code>${escapeHtml(email)}</code>) und das gew&auml;hlte Ziel beschr&auml;nkt ist.</p>
+        <p><strong>Was passiert hier?</strong> Mit einem Klick auf &bdquo;Zugriff anfordern&ldquo; wird automatisch eine Cloudflare-Gateway-Allow-Regel erstellt, die ausschliesslich auf deine Identit&auml;t (${escapeHtml(email)}) und das gew&auml;hlte Ziel beschr&auml;nkt ist.</p>
         <p>Der Zugriff erfolgt anschliessend &uuml;ber den WARP-Client und endet automatisch nach Ablauf der TTL. Du kannst eigene Freigaben jederzeit vorzeitig beenden.</p>
       </div>
 
@@ -457,7 +457,7 @@ function renderHtml(email: string, targets: Target[], ttl: string, admin: boolea
   </main>
 
   <footer>
-    Dynamic Rule &middot; <code>dynamic-access.vonbusch.app</code> &middot; von Busch GmbH
+    Dynamic Rule &middot; dynamic-access.vonbusch.app &middot; von Busch GmbH
   </footer>
 
 <script>
