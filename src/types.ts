@@ -3,6 +3,7 @@
 export interface Env {
   TARGETS: KVNamespace;
   AUDIT: R2Bucket;
+  DB: D1Database;
   CF_API_TOKEN: string;
   CF_ACCOUNT_ID: string;
   ACCESS_AUD: string;
@@ -76,7 +77,17 @@ export interface AuditEvent {
     | "error"
     | "admin_create"
     | "admin_update"
-    | "admin_delete";
+    | "admin_delete"
+    // v0.5.0: User- und Paket-Verwaltung
+    | "admin_user_create"
+    | "admin_user_update"
+    | "admin_user_delete"
+    | "admin_package_create"
+    | "admin_package_update"
+    | "admin_package_approve"
+    | "admin_package_revoke_approval"
+    | "admin_package_delete"
+    | "package_used";
   user?: string;
   target_id?: string;
   rule_id?: string;
@@ -84,4 +95,32 @@ export interface AuditEvent {
   expires_at?: string;
   reason?: string;
   details?: Record<string, unknown>;
+}
+
+// v0.5.0: vorbereitete Zugriffspakete + bekannte User in D1.
+// Targets bleiben in KV.
+export interface User {
+  id: string;
+  email: string;
+  label?: string | null;
+  created_at: string;
+  created_by: string;
+  disabled: boolean;
+}
+
+export interface AccessPackage {
+  id: string;
+  user_id: string;
+  target_id: string;
+  valid_from: string;     // ISO-8601
+  valid_until: string;    // ISO-8601
+  duration_min: number;   // Allow-Rule-TTL beim Klick
+  note?: string | null;
+  approved: boolean;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  created_at: string;
+  created_by: string;
+  used_at?: string | null;
+  used_rule_id?: string | null;
 }

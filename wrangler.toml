@@ -45,6 +45,14 @@ id = "a9828e41f148408b91a97fd42d7d58a6"
 binding = "AUDIT"
 bucket_name = "cf-dynamic-rule-audit"
 
+# D1 Datenbank fuer User, Access Packages, Audit-Spiegel (v0.5.0+).
+# Angelegt 2026-05-08 via Cloudflare MCP, primary_location_hint = weur.
+[[d1_databases]]
+binding = "DB"
+database_name = "cf-dynamic-rule-db"
+database_id = "c821ce0b-69bf-47e6-816e-84ee2d547789"
+migrations_dir = "migrations"
+
 # Secrets via Cloudflare Dashboard
 # (Worker -> Settings -> Variables and Secrets -> Add -> Type: Secret)
 # oder via `wrangler secret put <NAME>`:

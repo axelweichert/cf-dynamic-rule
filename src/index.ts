@@ -1,5 +1,5 @@
 // cf-dynamic-rule - Worker Entry
-// Version: 0.4.2
+// Version: 0.5.0-alpha.1
 
 import type { Env } from "./types.js";
 import { handleUi } from "./handlers/ui.js";
@@ -13,6 +13,19 @@ import {
   handleAdminUpdateTarget,
   handleAdminDeleteTarget,
 } from "./handlers/admin.js";
+import {
+  handleAdminCreateUser,
+  handleAdminDeleteUser,
+  handleAdminListUsers,
+  handleAdminUpdateUser,
+} from "./handlers/admin-users.js";
+import {
+  handleAdminApprovePackage,
+  handleAdminCreatePackage,
+  handleAdminDeletePackage,
+  handleAdminListPackages,
+  handleAdminRevokeApproval,
+} from "./handlers/admin-packages.js";
 import { runCleanup } from "./handlers/cleanup.js";
 
 export default {
@@ -27,7 +40,7 @@ export default {
       if (p === "/api/health" && m === "GET") {
         return Response.json({
           status: "ok",
-          version: "0.4.2",
+          version: "0.5.0-alpha.1",
           ts: new Date().toISOString(),
         });
       }
@@ -42,7 +55,7 @@ export default {
         return handleRevoke(request, env, revokeMatch[1]);
       }
 
-      // Admin-Endpoints
+      // Admin -- Targets (KV)
       if (p === "/api/admin/targets" && m === "GET") return handleAdminListTargets(request, env);
       if (p === "/api/admin/targets" && m === "POST") return handleAdminCreateTarget(request, env);
 
@@ -52,6 +65,39 @@ export default {
       }
       if (adminTargetMatch && m === "DELETE") {
         return handleAdminDeleteTarget(request, env, adminTargetMatch[1]);
+      }
+
+      // Admin -- Users (D1, v0.5.0)
+      if (p === "/api/admin/users" && m === "GET") return handleAdminListUsers(request, env);
+      if (p === "/api/admin/users" && m === "POST") return handleAdminCreateUser(request, env);
+
+      const adminUserMatch = p.match(/^\/api\/admin\/users\/([^/]+)$/);
+      if (adminUserMatch && m === "PUT") {
+        return handleAdminUpdateUser(request, env, adminUserMatch[1]);
+      }
+      if (adminUserMatch && m === "DELETE") {
+        return handleAdminDeleteUser(request, env, adminUserMatch[1]);
+      }
+
+      // Admin -- Access Packages (D1, v0.5.0)
+      if (p === "/api/admin/packages" && m === "GET") return handleAdminListPackages(request, env);
+      if (p === "/api/admin/packages" && m === "POST") return handleAdminCreatePackage(request, env);
+
+      const adminPackageApproveMatch = p.match(
+        /^\/api\/admin\/packages\/([^/]+)\/approve$/,
+      );
+      if (adminPackageApproveMatch && m === "POST") {
+        return handleAdminApprovePackage(request, env, adminPackageApproveMatch[1]);
+      }
+      const adminPackageRevokeMatch = p.match(
+        /^\/api\/admin\/packages\/([^/]+)\/approval$/,
+      );
+      if (adminPackageRevokeMatch && m === "DELETE") {
+        return handleAdminRevokeApproval(request, env, adminPackageRevokeMatch[1]);
+      }
+      const adminPackageMatch = p.match(/^\/api\/admin\/packages\/([^/]+)$/);
+      if (adminPackageMatch && m === "DELETE") {
+        return handleAdminDeletePackage(request, env, adminPackageMatch[1]);
       }
 
       return new Response("Not Found", { status: 404 });
