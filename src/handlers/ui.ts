@@ -1044,16 +1044,37 @@ async function onPackageAction(ev) {
   }
 }
 
-function openPackageModal() {
+async function openPackageModal() {
   pErr.textContent = '';
-  // User-Optionen befuellen (nur aktive)
+  // Listen IMMER frisch laden -- der Cache koennte veraltet sein
+  // (z. B. neu angelegtes Target/User aus dem anderen Tab).
+  pUserSel.innerHTML = '<option value="">l&auml;dt &hellip;</option>';
+  pTargetSel.innerHTML = '<option value="">l&auml;dt &hellip;</option>';
+  packageModal.hidden = false;
+
+  try {
+    const [uRes, tRes] = await Promise.all([
+      fetch('/api/admin/users'),
+      fetch('/api/admin/targets'),
+    ]);
+    if (uRes.ok) {
+      const j = await uRes.json();
+      __USERS_CACHE = j.users || [];
+    }
+    if (tRes.ok) {
+      const j = await tRes.json();
+      __TARGETS_CACHE = j.targets || [];
+    }
+  } catch (e) {
+    pErr.textContent = 'Listen konnten nicht geladen werden: ' + e.message;
+  }
+
   const activeUsers = __USERS_CACHE.filter(function(u) { return u.disabled !== true; });
   pUserSel.innerHTML = activeUsers.length === 0
     ? '<option value="">(Keine aktiven User)</option>'
     : '<option value="">&mdash; bitte w&auml;hlen &mdash;</option>' + activeUsers.map(function(u) {
         return '<option value="' + escHtml(u.id) + '">' + escHtml(u.email) + (u.label ? ' (' + escHtml(u.label) + ')' : '') + '</option>';
       }).join('');
-  // Target-Optionen befuellen (nur aktive)
   const activeTargets = __TARGETS_CACHE.filter(function(t) { return t.disabled !== true; });
   pTargetSel.innerHTML = activeTargets.length === 0
     ? '<option value="">(Keine aktiven Targets)</option>'
@@ -1067,7 +1088,6 @@ function openPackageModal() {
   pUntil.value = toLocalIso(tomorrow);
   pDuration.value = '20';
   pNote.value = '';
-  packageModal.hidden = false;
   setTimeout(function() { pUserSel.focus(); }, 50);
 }
 function closePackageModal() { packageModal.hidden = true; pErr.textContent = ''; }
