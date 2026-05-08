@@ -48,7 +48,10 @@ export async function handleActive(request: Request, env: Env): Promise<Response
       valid_until: parsed.expiresAt.toISOString(),
     });
   }
-  const debug = {
+  // Diagnose-Counts nur als Log -- der Debug-Block im Response wurde in
+  // alpha.13 sichtbar in die UI gepackt, in alpha.14 wieder entfernt, weil
+  // Admins jetzt eine zweite Sektion "Freigeschaltete Pakete" sehen.
+  console.log("active_debug", JSON.stringify({
     caller: user.email,
     admin,
     prefix,
@@ -57,21 +60,8 @@ export async function handleActive(request: Request, env: Env): Promise<Response
     expired: nExpired,
     not_mine: nNotMine,
     returned: out.length,
-    sample_rules: all.slice(0, 5).map((r) => ({
-      id: r.id,
-      name: r.name,
-      description: r.description ?? "",
-      enabled: r.enabled,
-      action: r.action,
-    })),
-  };
-  console.log("active_debug", JSON.stringify(debug));
-  // Admins bekommen den Debug-Block direkt mit im Response, damit man im
-  // Browser-Network-Tab sofort sieht, warum eine Liste leer ist (Prefix-Mismatch,
-  // expired, CF API liefert nichts, ...). Standard-User bekommen ihn nicht.
-  const body: Record<string, unknown> = { active: out, scope: admin ? "all" : "self" };
-  if (admin) body._debug = debug;
-  return Response.json(body);
+  }));
+  return Response.json({ active: out, scope: admin ? "all" : "self" });
 }
 
 export async function handleRevoke(

@@ -623,6 +623,9 @@ async function requestViaPackage(ev) {
 }
 
 // --- User-Tab: aktive Freigaben ---
+// Standard-User: nur eigene eingeloeste Allow-Rules.
+// Admin: zwei Sektionen -- (1) eingeloeste Allow-Rules aller User mit User-Spalte
+// und (2) freigeschaltete-aber-noch-nicht-eingeloeste Pakete aus dem D1.
 async function refreshActive() {
   try {
     const r = await fetch('/api/active');
@@ -631,40 +634,92 @@ async function refreshActive() {
       return;
     }
     const j = await r.json();
-    if (!j.active || j.active.length === 0) {
-      let dbg = '';
-      if (j._debug) {
-        const d = j._debug;
-        const samples = (d.sample_rules || []).map(function(s) {
-          return '<li><code>' + escHtml(s.name || '') + '</code> &mdash; <code>' + escHtml(s.description || '') + '</code> &mdash; enabled=' + s.enabled + ', action=' + escHtml(s.action || '') + '</li>';
-        }).join('');
-        dbg = '<div style="margin-top:16px; padding:12px; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; font-size:12px; color:#92400e;">'
-          + '<div style="font-weight:600; margin-bottom:6px;">Admin-Debug</div>'
-          + 'Caller: ' + escHtml(d.caller || '') + '<br>'
-          + 'Prefix erwartet: <code>' + escHtml(d.prefix || '') + '</code><br>'
-          + 'CF Gateway API liefert insgesamt: <strong>' + d.total_rules + '</strong> Rules<br>'
-          + 'Davon: unparsed=' + d.unparsed + ', expired=' + d.expired + ', not_mine=' + d.not_mine + ', returned=' + d.returned + '<br>'
-          + (samples ? '<div style="margin-top:8px;">Erste Rules (sample):<ul style="margin:4px 0 0 0; padding-left:16px;">' + samples + '</ul></div>' : '<div style="margin-top:8px;">Keine Rules in der CF Gateway API gefunden.</div>')
-          + '</div>';
-      }
-      activeEl.innerHTML = '<div class="empty">Keine aktiven Freigaben.</div>' + dbg;
-      return;
-    }
     const adminScope = j.scope === 'all';
-    const rows = j.active.map(function(a) {
-      const isOwn = (a.user || '').toLowerCase() === (__USER_EMAIL || '').toLowerCase();
-      const userCell = adminScope
-        ? '<td>' + escHtml(a.user || '') + (isOwn ? ' <span class="badge info" style="font-size:10px; padding:2px 6px;">eigene</span>' : '') + '</td>'
-        : '';
-      return '<tr>'
-        + userCell
-        + '<td class="target">' + escHtml(a.target_id) + '</td>'
-        + '<td class="expiry">' + escHtml(fmtDate(a.valid_until)) + '</td>'
-        + '<td class="action"><button class="outline danger" data-id="' + escHtml(a.rule_id) + '" data-user="' + escHtml(a.user || '') + '">Beenden</button></td>'
-      + '</tr>';
-    }).join('');
-    const headerCols = (adminScope ? '<th>User</th>' : '') + '<th>Target</th><th>G&uuml;ltig bis</th><th></th>';
-    activeEl.innerHTML = '<table><thead><tr>' + headerCols + '</tr></thead><tbody>' + rows + '</tbody></table>';
+
+    // Sektion 1: eingeloeste Allow-Rules
+    let rulesHtml;
+    if (!j.active || j.active.length === 0) {
+      rulesHtml = '<div class="empty">Keine eingel&ouml;sten Sessions.</div>';
+    } else {
+      const rows = j.active.map(function(a) {
+        const isOwn = (a.user || '').toLowerCase() === (__USER_EMAIL || '').toLowerCase();
+        const userCell = adminScope
+          ? '<td>' + escHtml(a.user || '') + (isOwn ? ' <span class="badge info" style="font-size:10px; padding:2px 6px;">eigene</span>' : '') + '</td>'
+          : '';
+        return '<tr>'
+          + userCell
+          + '<td class="target">' + escHtml(a.target_id) + '</td>'
+          + '<td class="expiry">' + escHtml(fmtDate(a.valid_until)) + '</td>'
+          + '<td class="action"><button class="outline danger" data-id="' + escHtml(a.rule_id) + '" data-user="' + escHtml(a.user || '') + '">Beenden</button></td>'
+        + '</tr>';
+      }).join('');
+      const headerCols = (adminScope ? '<th>User</th>' : '') + '<th>Target</th><th>G&uuml;ltig bis</th><th></th>';
+      rulesHtml = '<table><thead><tr>' + headerCols + '</tr></thead><tbody>' + rows + '</tbody></table>';
+    }
+
+    // Sektion 2: freigeschaltete-aber-nicht-eingeloeste Pakete (nur Admin)
+    let pendingHtml = '';
+    if (adminScope) {
+      try {
+        const promises = [fetch('/api/admin/packages')];
+        if (__USERS_CACHE.length === 0) promises.push(fetch('/api/admin/users'));
+        if (__TARGETS_CACHE.length === 0) promises.push(fetch('/api/admin/targets'));
+        const responses = await Promise.all(promises);
+        let idx = 1;
+        if (__USERS_CACHE.length === 0 && responses[idx]) {
+          const x = await responses[idx].json();
+          __USERS_CACHE = x.users || [];
+          idx++;
+        }
+        if (__TARGETS_CACHE.length === 0 && responses[idx]) {
+          const x = await responses[idx].json();
+          __TARGETS_CACHE = x.targets || [];
+        }
+        const userById = Object.fromEntries(__USERS_CACHE.map(function(u) { return [u.id, u]; }));
+        const targetById = Object.fromEntries(__TARGETS_CACHE.map(function(t) { return [t.id, t]; }));
+        const pkgJson = await responses[0].json();
+        const pkgs = pkgJson.packages || [];
+        const now = Date.now();
+        const pending = pkgs.filter(function(p) {
+          if (!p.approved) return false;
+          if (p.used_at) return false;
+          const validUntil = Date.parse(p.valid_until);
+          return !isNaN(validUntil) && validUntil > now;
+        });
+        if (pending.length === 0) {
+          pendingHtml = '<div class="empty">Keine freigeschalteten, ungenutzten Pakete.</div>';
+        } else {
+          const rows = pending.map(function(p) {
+            const u = userById[p.user_id] || { email: p.user_id };
+            const t = targetById[p.target_id] || { label: p.target_id, ip: '?', port: '?' };
+            const fromInPast = Date.parse(p.valid_from) <= now;
+            const statusBadge = fromInPast
+              ? '<span class="badge ok"><span class="dot"></span>jetzt nutzbar</span>'
+              : '<span class="badge info"><span class="dot"></span>wartet auf Startzeit</span>';
+            return '<tr>'
+              + '<td>' + escHtml(u.email || '') + '</td>'
+              + '<td>' + escHtml(t.label || p.target_id) + '<div class="target-id">' + escHtml(t.ip || '') + ':' + escHtml(String(t.port || '')) + '</div></td>'
+              + '<td class="expiry">' + escHtml(fmtDate(p.valid_from)) + '<div class="target-id">bis ' + escHtml(fmtDate(p.valid_until)) + '</div></td>'
+              + '<td>' + escHtml(String(p.duration_min)) + ' min</td>'
+              + '<td>' + statusBadge + '</td>'
+            + '</tr>';
+          }).join('');
+          pendingHtml = '<table><thead><tr><th>User</th><th>Ziel</th><th>G&uuml;ltigkeit</th><th>Dauer beim Klick</th><th>Status</th></tr></thead><tbody>' + rows + '</tbody></table>';
+        }
+      } catch (e) {
+        pendingHtml = '<div class="empty">Pakete konnten nicht geladen werden: ' + escHtml(e.message) + '</div>';
+      }
+    }
+
+    if (adminScope) {
+      activeEl.innerHTML =
+          '<div style="margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 13px;">Eingel&ouml;ste Sessions <span style="color:#9ca3af; font-weight: 400;">(echte CF-One-Allow-Rules)</span></div>'
+        + rulesHtml
+        + '<div style="margin: 24px 0 8px; font-weight: 600; color: #374151; font-size: 13px;">Freigeschaltete Pakete <span style="color:#9ca3af; font-weight: 400;">(im D1 vorbestellt + freigegeben, User hat noch nicht geklickt)</span></div>'
+        + pendingHtml;
+    } else {
+      activeEl.innerHTML = rulesHtml;
+    }
     activeEl.querySelectorAll('button.danger').forEach(function(b) { b.addEventListener('click', revoke); });
   } catch (e) {
     activeEl.innerHTML = '<div class="empty">Netz-Fehler: ' + escHtml(e.message) + '</div>';
