@@ -632,7 +632,22 @@ async function refreshActive() {
     }
     const j = await r.json();
     if (!j.active || j.active.length === 0) {
-      activeEl.innerHTML = '<div class="empty">Keine aktiven Freigaben.</div>';
+      let dbg = '';
+      if (j._debug) {
+        const d = j._debug;
+        const samples = (d.sample_rules || []).map(function(s) {
+          return '<li><code>' + escHtml(s.name || '') + '</code> &mdash; <code>' + escHtml(s.description || '') + '</code> &mdash; enabled=' + s.enabled + ', action=' + escHtml(s.action || '') + '</li>';
+        }).join('');
+        dbg = '<div style="margin-top:16px; padding:12px; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; font-size:12px; color:#92400e;">'
+          + '<div style="font-weight:600; margin-bottom:6px;">Admin-Debug</div>'
+          + 'Caller: ' + escHtml(d.caller || '') + '<br>'
+          + 'Prefix erwartet: <code>' + escHtml(d.prefix || '') + '</code><br>'
+          + 'CF Gateway API liefert insgesamt: <strong>' + d.total_rules + '</strong> Rules<br>'
+          + 'Davon: unparsed=' + d.unparsed + ', expired=' + d.expired + ', not_mine=' + d.not_mine + ', returned=' + d.returned + '<br>'
+          + (samples ? '<div style="margin-top:8px;">Erste Rules (sample):<ul style="margin:4px 0 0 0; padding-left:16px;">' + samples + '</ul></div>' : '<div style="margin-top:8px;">Keine Rules in der CF Gateway API gefunden.</div>')
+          + '</div>';
+      }
+      activeEl.innerHTML = '<div class="empty">Keine aktiven Freigaben.</div>' + dbg;
       return;
     }
     const adminScope = j.scope === 'all';
