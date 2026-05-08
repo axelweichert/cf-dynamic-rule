@@ -547,15 +547,28 @@ async function refreshMyPackages() {
     const cards = packages.map(function(p) {
       const t = p.target || {};
       const note = p.note ? '<div class="target-id" style="margin-top: 8px; font-style: italic;">' + escHtml(p.note) + '</div>' : '';
+      const statusBadge = p.approved
+        ? '<span class="badge ok"><span class="dot"></span>freigeschaltet</span>'
+        : '<span class="badge warn"><span class="dot"></span>wartet auf Freischaltung</span>';
+      const createdInfo = p.created_by
+        ? '<div class="target-id" style="margin-top: 4px;">angelegt von ' + escHtml(p.created_by) + '</div>'
+        : '';
+      const button = p.approved
+        ? '<button class="primary" data-pkg="' + escHtml(p.id) + '">Zugriff anfordern</button>'
+        : '<button class="primary" disabled title="Ein anderer Admin als der Ersteller muss das Paket erst freischalten (Vier-Augen-Prinzip).">wartet auf Freischaltung</button>';
       return '<div class="card" style="border: 1px solid #e5e7eb; padding: 16px; margin-bottom: 12px;">'
         + '<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">'
         +   '<div style="flex: 1;">'
-        +     '<div style="font-weight: 600; font-size: 16px;">' + escHtml(t.label || p.target_id) + '</div>'
+        +     '<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">'
+        +       '<div style="font-weight: 600; font-size: 16px;">' + escHtml(t.label || p.target_id) + '</div>'
+        +       statusBadge
+        +     '</div>'
         +     '<div class="target-id" style="margin-top: 4px;">' + escHtml(t.ip || '?') + ':' + escHtml(String(t.port || '?')) + ' / ' + escHtml(t.protocol || '?') + ' &mdash; ' + escHtml(t.service || '') + '</div>'
         +     '<div class="target-id" style="margin-top: 6px;">G&uuml;ltig bis ' + escHtml(fmtDate(p.valid_until)) + ' &middot; Dauer beim Klick: ' + escHtml(String(p.duration_min)) + ' min</div>'
+        +     createdInfo
         +     note
         +   '</div>'
-        +   '<button class="primary" data-pkg="' + escHtml(p.id) + '">Zugriff anfordern</button>'
+        +   button
         + '</div>'
         + '</div>';
     }).join('');

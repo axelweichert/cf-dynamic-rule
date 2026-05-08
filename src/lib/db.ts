@@ -155,16 +155,17 @@ export async function listPackagesForUser(
 }
 
 /**
- * Pakete, die der User mit dieser E-Mail aktuell einloesen darf:
+ * Pakete, die der User mit dieser E-Mail aktuell SEHEN soll
+ * (Self-Service-Tab im UI):
  *   - User existiert und ist nicht disabled
- *   - approved = true
  *   - jetzt zwischen valid_from und valid_until
  *   - noch nicht genutzt (used_at IS NULL)
+ *   - approved kann true ODER false sein -- nicht-approved werden im UI
+ *     mit Status "wartet auf Freischaltung" angezeigt, Button disabled.
  *
- * Email-Match case-insensitive. Wenn der User nicht in der Tabelle steht,
- * gibt die Funktion ein leeres Array zurueck (nicht null/undefined).
+ * Email-Match case-insensitive.
  */
-export async function listActivePackagesForEmail(
+export async function listVisiblePackagesForEmail(
   env: Env,
   email: string,
 ): Promise<AccessPackage[]> {
@@ -175,11 +176,10 @@ export async function listActivePackagesForEmail(
      INNER JOIN users u ON u.id = p.user_id
      WHERE LOWER(u.email) = LOWER(?)
        AND u.disabled = 0
-       AND p.approved = 1
        AND p.valid_from <= ?
        AND p.valid_until >= ?
        AND p.used_at IS NULL
-     ORDER BY p.valid_until ASC`,
+     ORDER BY p.approved DESC, p.valid_until ASC`,
   )
     .bind(email, nowIso, nowIso)
     .all<PackageRow>();

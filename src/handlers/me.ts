@@ -5,7 +5,7 @@
 import type { Env, Target } from "../types.js";
 import { requireUser } from "../lib/jwt.js";
 import { isAdmin } from "../lib/admin.js";
-import { listActivePackagesForEmail } from "../lib/db.js";
+import { listVisiblePackagesForEmail } from "../lib/db.js";
 import { getTarget } from "../lib/targets.js";
 
 export async function handleMe(request: Request, env: Env): Promise<Response> {
@@ -16,7 +16,8 @@ export async function handleMe(request: Request, env: Env): Promise<Response> {
     return new Response(`Unauthorized: ${(err as Error).message}`, { status: 401 });
   }
 
-  // Aktive Pakete fuer diesen User abrufen.
+  // Sichtbare Pakete fuer diesen User abrufen (approved=true klickbar,
+  // approved=false als "wartet auf Freischaltung" sichtbar aber disabled).
   // Pro Paket das zugehoerige Target aus KV nachladen, damit das UI Label/IP/Port
   // direkt anzeigen kann ohne weitere Roundtrips.
   let packages: Array<{
@@ -27,10 +28,12 @@ export async function handleMe(request: Request, env: Env): Promise<Response> {
     valid_until: string;
     duration_min: number;
     note: string | null;
+    approved: boolean;
     approved_by: string | null;
+    created_by: string;
   }> = [];
   try {
-    const raw = await listActivePackagesForEmail(env, user.email);
+    const raw = await listVisiblePackagesForEmail(env, user.email);
     packages = await Promise.all(
       raw.map(async (p) => ({
         id: p.id,
@@ -40,7 +43,9 @@ export async function handleMe(request: Request, env: Env): Promise<Response> {
         valid_until: p.valid_until,
         duration_min: p.duration_min,
         note: p.note ?? null,
+        approved: p.approved,
         approved_by: p.approved_by ?? null,
+        created_by: p.created_by,
       })),
     );
     // Pakete deren Target geloescht/disabled wurde rausfiltern -- nicht klickbar.
