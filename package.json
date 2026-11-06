@@ -25,5 +25,11 @@
     "type": "git",
     "url": "https://github.com/axelweichert/cf-dynamic-rule.git"
   },
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "overrides": {
+    "undici": "^7.30.1",
+    "sharp": "^0.35.5",
+    "ws": "^8.21.0",
+    "esbuild": "^0.28.1"
+  }
 }
